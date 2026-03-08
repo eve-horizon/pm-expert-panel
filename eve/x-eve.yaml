@@ -3,19 +3,19 @@ agents:
     # Coordinator — routes work, minimal reasoning needed
     coordinator:
       - harness: mclaude
-        model: sonnet-4.6
+        model: claude-sonnet-4-5-20241022
         reasoning_effort: low
 
     # Expert — deep analysis, needs strong reasoning
     expert:
       - harness: mclaude
-        model: sonnet-4.6
+        model: claude-sonnet-4-5-20241022
         reasoning_effort: medium
 
     # Monitor — lightweight classification
     monitor:
       - harness: mclaude
-        model: sonnet-4.6
+        model: claude-sonnet-4-5-20241022
         reasoning_effort: low
 
     # --- Future: Qwen 3.5 via pi harness ---
