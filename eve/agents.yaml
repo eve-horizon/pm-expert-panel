@@ -1,0 +1,115 @@
+version: 1
+agents:
+  # Coordinator — receives messages, fans out to expert panel
+  pm-coordinator:
+    slug: pm
+    name: "PM Coordinator"
+    description: "Receives documents and dispatches to expert panel for multi-perspective review"
+    skill: coordinator
+    harness_profile: coordinator
+    workflow: coordinator
+    gateway:
+      policy: routable
+      clients: [slack]
+
+  # Expert Panel Agents
+  tech-lead:
+    slug: tech-lead
+    name: "Tech Lead"
+    description: "Reviews for technical feasibility, architecture, cost, and engineering risk"
+    skill: tech-lead
+    harness_profile: expert
+    workflow: assistant
+    gateway:
+      policy: routable
+      clients: [slack]
+
+  ux-advocate:
+    slug: ux-advocate
+    name: "UX Advocate"
+    description: "Reviews for user experience, research gaps, accessibility, and i18n readiness"
+    skill: ux-advocate
+    harness_profile: expert
+    workflow: assistant
+    gateway:
+      policy: routable
+      clients: [slack]
+
+  biz-analyst:
+    slug: biz-analyst
+    name: "Business Analyst"
+    description: "Reviews for process flows, user journeys, data landscape, and success criteria"
+    skill: biz-analyst
+    harness_profile: expert
+    workflow: assistant
+    gateway:
+      policy: routable
+      clients: [slack]
+
+  gtm-advocate:
+    slug: gtm-advocate
+    name: "GTM Advocate"
+    description: "Reviews for revenue impact, competitive positioning, market timing, and go-to-market readiness"
+    skill: gtm-advocate
+    harness_profile: expert
+    workflow: assistant
+    gateway:
+      policy: routable
+      clients: [slack]
+
+  risk-assessor:
+    slug: risk-assessor
+    name: "Risk Assessor"
+    description: "Reviews for timeline, dependency, resource, commercial, and regulatory risks"
+    skill: risk-assessor
+    harness_profile: expert
+    workflow: assistant
+    gateway:
+      policy: routable
+      clients: [slack]
+
+  qa-strategist:
+    slug: qa-strategist
+    name: "QA Strategist"
+    description: "Reviews for testing strategy, edge cases, acceptance criteria, and regression risk"
+    skill: qa-strategist
+    harness_profile: expert
+    workflow: assistant
+    gateway:
+      policy: routable
+      clients: [slack]
+
+  devils-advocate:
+    slug: devils-advocate
+    name: "Devil's Advocate"
+    description: "Challenges assumptions, proposes alternatives, stress-tests reasoning"
+    skill: devils-advocate
+    harness_profile: expert
+    workflow: assistant
+    gateway:
+      policy: routable
+      clients: [slack]
+
+  # Chat monitor — listens to channel messages
+  chat-monitor:
+    slug: pm-monitor
+    name: "Chat Monitor"
+    description: "Monitors channel chat for decisions, action items, and context"
+    skill: chat-monitor
+    harness_profile: monitor
+    workflow: assistant
+    gateway:
+      policy: routable
+      clients: [slack]
+
+  # Search agent — handles search queries
+  pm-search:
+    slug: pm-search
+    name: "PM Search"
+    description: "Searches the document catalog for previously reviewed materials"
+    skill: search
+    harness_profile: monitor
+    workflow: assistant
+    gateway:
+      policy: routable
+      clients: [slack]

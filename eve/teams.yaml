@@ -1,0 +1,16 @@
+version: 1
+teams:
+  expert-panel:
+    lead: pm-coordinator
+    members:
+      - tech-lead
+      - ux-advocate
+      - biz-analyst
+      - gtm-advocate
+      - risk-assessor
+      - qa-strategist
+      - devils-advocate
+    dispatch:
+      mode: fanout
+      max_parallel: 7
+      member_timeout: 120

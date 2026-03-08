@@ -1,0 +1,11 @@
+version: 1
+workflows:
+  pm-review:
+    trigger:
+      - source: system
+        type: doc.ingest
+    hints:
+      timeout_seconds: 300
+      permission_policy: auto_edit
+    target:
+      team: expert-panel

@@ -1,0 +1,10 @@
+version: 1
+id: pm-expert-panel
+imports:
+  agents: eve/agents.yaml
+  teams: eve/teams.yaml
+  workflows: eve/workflows.yaml
+  chat: eve/chat.yaml
+  x_eve: eve/x-eve.yaml
+gateway:
+  default_policy: routable
