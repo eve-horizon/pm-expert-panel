@@ -2,19 +2,19 @@ agents:
   profiles:
     # Coordinator — routes work, minimal reasoning needed
     coordinator:
-      - harness: mclaude
+      - harness: claude
         model: sonnet
         reasoning_effort: low
 
     # Expert — deep analysis, needs strong reasoning
     expert:
-      - harness: mclaude
+      - harness: claude
         model: sonnet
         reasoning_effort: medium
 
     # Monitor — lightweight classification
     monitor:
-      - harness: mclaude
+      - harness: claude
         model: sonnet
         reasoning_effort: low
 
