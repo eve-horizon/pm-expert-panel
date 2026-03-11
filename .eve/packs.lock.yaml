@@ -1,15 +1,15 @@
-resolved_at: 2026-03-09T15:25:42.809Z
-project_slug: evepm
+resolved_at: 2026-03-11T14:32:15.878Z
+project_slug: pmbot
 packs:
   - id: pm-expert-panel
     source: ./
-    ref: a90594748924bdde88cabe87b3b80c476f6ba02f
+    ref: cedc5691ed593048e4d0caf1b3439e3f37662807
     pack_version: 1
 effective:
-  agents_count: 10
+  agents_count: 8
   teams_count: 1
-  routes_count: 10
-  profiles_count: 0
-  agents_hash: 10aab760
-  teams_hash: 47f3728a
-  chat_hash: 3356aec7
+  routes_count: 1
+  profiles_count: 3
+  agents_hash: 3d2dd2d2
+  teams_hash: 32e0a8af
+  chat_hash: 09f8d663
