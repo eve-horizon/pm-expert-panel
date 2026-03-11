@@ -15,14 +15,16 @@ Decide which path to take:
 
 | Signal | Action | eve.status |
 |--------|--------|------------|
-| Document attached + "review" intent | Full panel review | `prepared` |
+| Document attached + analysis intent (review, analyse, assess, evaluate, critique, feedback, "look at this", "what do you think") | Full panel review | `prepared` |
+| Substantial document attached (multi-page, design doc, spec, PRD, RFC) — regardless of phrasing | Full panel review | `prepared` |
 | Multiple files or complex document | Full panel review | `prepared` |
 | Audio/video file (any intent) | Transcribe first, then decide | depends |
-| Simple question (no files or simple file) | Answer directly | `success` |
+| Simple question (no files) | Answer directly | `success` |
+| Small file + narrow factual question ("what format is this?", "who wrote this?") | Answer directly | `success` |
 | "search" / "find" intent | Search and answer | `success` |
 | "note" / "decision" / "action item" | Capture and confirm | `success` |
 
-**When uncertain, err toward `prepared`** — better to get 7 expert perspectives than to miss something.
+**The default for any document + ambiguous intent is `prepared`.** If the user attached a substantial file — a design doc, spec, plan, proposal — and asks you to "analyse", "review", "look at", "assess", or anything beyond a narrow factual question, that is a panel path. When uncertain, err toward `prepared` — better to get 7 expert perspectives than to miss something.
 
 ## Path A: Full Panel Review
 
@@ -57,7 +59,12 @@ Decide which path to take:
 
    Original files available at .eve/attachments/ for direct examination.
    ```
-6. Return: `{"eve": {"status": "prepared", "summary": "Content prepared for expert review"}}`
+6. Return the prepared signal in a fenced code block (the platform extracts status from this exact format):
+   ````
+   ```json-result
+   {"eve": {"status": "prepared", "summary": "Content prepared for expert review"}}
+   ```
+   ````
 
 ### Phase 2: WAIT
 
@@ -72,7 +79,12 @@ Automatic — the platform promotes 7 backlog experts to ready and runs them in 
    - **Critical risks**: highest-severity items from risk-assessor
    - **Key questions**: unresolved questions across all reviews
    - **Recommended actions**: prioritized next steps
-3. Return: `{"eve": {"status": "success", "summary": "Executive summary with the synthesis"}}`
+3. Return the final signal:
+   ````
+   ```json-result
+   {"eve": {"status": "success", "summary": "Executive summary with the synthesis"}}
+   ```
+   ````
 
 ## Path B: Solo Response
 
@@ -84,7 +96,12 @@ Handle the request directly using your PM expertise:
 - **Action items** → acknowledge: `Noted: action — [summary]`
 - **File + simple question** → read the file, answer the specific question
 
-Return: `{"eve": {"status": "success", "summary": "Your answer"}}`
+Return the result signal:
+````
+```json-result
+{"eve": {"status": "success", "summary": "Your answer"}}
+```
+````
 
 When you return `success`, the 7 backlog expert jobs are automatically cleaned up — they never start.
 
