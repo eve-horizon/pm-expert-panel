@@ -64,6 +64,16 @@ export class QuestionsController {
     return this.questions.update(dbContext(req), id, body);
   }
 
+  @Post('questions/:id/evolve')
+  @HttpCode(HttpStatus.OK)
+  evolve(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: { answer: string },
+  ) {
+    return this.questions.evolve(dbContext(req), id, body.answer);
+  }
+
   @Delete('questions/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Req() req: Request, @Param('id') id: string) {

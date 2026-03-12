@@ -162,3 +162,59 @@ agents:
       git:
         commit: never
         push: never
+
+  # Phase 3: Intelligence Layer Agents
+  map-chat:
+    slug: map-chat
+    name: "Map Chat"
+    description: "Conversational map editing — interprets natural language requests and proposes changesets"
+    skill: map-chat
+    harness_profile: coordinator
+    workflow: assistant
+    context:
+      memory:
+        agent: shared
+        categories: [decisions, conventions, context]
+        max_items: 20
+    gateway:
+      policy: none
+    policies:
+      permission_policy: auto_edit
+      git:
+        commit: never
+        push: never
+
+  alignment:
+    slug: alignment
+    name: "Alignment Agent"
+    description: "Scans map for conflicts, gaps, duplicates, and assumptions after changeset acceptance"
+    skill: alignment
+    harness_profile: expert
+    workflow: assistant
+    context:
+      memory:
+        agent: shared
+        categories: [decisions, conventions]
+        max_items: 20
+    gateway:
+      policy: none
+    policies:
+      permission_policy: auto_edit
+      git:
+        commit: never
+        push: never
+
+  question-agent:
+    slug: question-agent
+    name: "Question Agent"
+    description: "Evaluates answered questions and proposes map changes when the answer implies an update"
+    skill: question
+    harness_profile: expert
+    workflow: assistant
+    gateway:
+      policy: none
+    policies:
+      permission_policy: auto_edit
+      git:
+        commit: never
+        push: never

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DatabaseService, DbContext } from '../common/database.service';
+import { EveEventsService } from '../common/eve-events.service';
 
 // ---------------------------------------------------------------------------
 // Row types
@@ -87,7 +88,10 @@ const ENTITY_TABLE: Record<string, string> = {
 
 @Injectable()
 export class QuestionsService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly events: EveEventsService,
+  ) {}
 
   async list(
     ctx: DbContext,
@@ -285,6 +289,65 @@ export class QuestionsService {
 
       await client.query('DELETE FROM questions WHERE id = $1', [id]);
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Evolve — answer question + emit event to trigger question-evolution workflow
+  // ---------------------------------------------------------------------------
+
+  async evolve(
+    ctx: DbContext,
+    id: string,
+    answer: string,
+  ): Promise<QuestionWithReferences> {
+    const existing = await this.findById(ctx, id);
+
+    if (existing.status !== 'open') {
+      throw new BadRequestException(
+        `Question is "${existing.status}", expected "open"`,
+      );
+    }
+
+    const result = await this.db.withClient(ctx, async (client) => {
+      const { rows } = await client.query<Question>(
+        `UPDATE questions
+            SET answer = $1, status = 'answered'
+          WHERE id = $2
+        RETURNING *`,
+        [answer, id],
+      );
+      const question = rows[0];
+      if (!question) throw new NotFoundException('Question not found');
+
+      const references = await client.query<QuestionReference>(
+        'SELECT * FROM question_references WHERE question_id = $1 ORDER BY created_at',
+        [id],
+      );
+
+      await client.query(
+        `INSERT INTO audit_log (org_id, project_id, entity_type, entity_id, action, actor, details)
+              VALUES ($1, $2, 'question', $3, 'evolve', $4, $5)`,
+        [
+          ctx.org_id,
+          question.project_id,
+          question.id,
+          ctx.user_id ?? null,
+          JSON.stringify({ answer }),
+        ],
+      );
+
+      return { ...question, references: references.rows };
+    });
+
+    // Emit event outside the transaction (fire-and-forget)
+    this.events.emit('app.question.answered', {
+      question_id: result.id,
+      project_id: result.project_id,
+      display_id: result.display_id,
+      answer,
+    });
+
+    return result;
   }
 
   // ---------------------------------------------------------------------------

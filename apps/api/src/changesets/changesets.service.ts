@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DatabaseService, DbContext } from '../common/database.service';
+import { EveEventsService } from '../common/eve-events.service';
 
 import type { PoolClient } from 'pg';
 
@@ -75,7 +76,10 @@ export interface ReviewDecision {
 
 @Injectable()
 export class ChangesetsService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly events: EveEventsService,
+  ) {}
 
   // -------------------------------------------------------------------------
   // List
@@ -249,7 +253,18 @@ export class ChangesetsService {
         [id],
       );
 
-      return { ...updatedRows[0], items: allItems };
+      const result = { ...updatedRows[0], items: allItems };
+
+      // Emit event outside the transaction (fire-and-forget)
+      this.events.emit('app.changeset.accepted', {
+        changeset_id: result.id,
+        project_id: result.project_id,
+        title: result.title,
+        source: result.source,
+        items_accepted: items.length,
+      });
+
+      return result;
     });
   }
 

@@ -21,7 +21,17 @@ import { TaskCard } from './TaskCard';
 //   - Under each activity: one row of StepHeaders + one row of task columns
 // ---------------------------------------------------------------------------
 
-export function StoryMap() {
+interface StoryMapProps {
+  aiModifiedEntities?: Set<string>;
+  aiAddedEntities?: Set<string>;
+  onQuestionClick?: (questionId: string) => void;
+}
+
+export function StoryMap({
+  aiModifiedEntities,
+  aiAddedEntities,
+  onQuestionClick,
+}: StoryMapProps = {}) {
   const { projectId } = useParams<{ projectId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -144,6 +154,9 @@ export function StoryMap() {
                 activity={activity}
                 stepCount={maxStepsInActivity}
                 roleHighlight={roleHighlight}
+                aiModifiedEntities={aiModifiedEntities}
+                aiAddedEntities={aiAddedEntities}
+                onQuestionClick={onQuestionClick}
               />
             ))}
           </div>
@@ -164,12 +177,18 @@ interface ActivitySectionProps {
   activity: MapResponse['activities'][number];
   stepCount: number;
   roleHighlight: string | null;
+  aiModifiedEntities?: Set<string>;
+  aiAddedEntities?: Set<string>;
+  onQuestionClick?: (questionId: string) => void;
 }
 
 function ActivitySection({
   activity,
   stepCount,
   roleHighlight,
+  aiModifiedEntities,
+  aiAddedEntities,
+  onQuestionClick,
 }: ActivitySectionProps) {
   return (
     <>
@@ -203,6 +222,12 @@ function ActivitySection({
                   roleHighlight !== null &&
                   task.persona?.code !== roleHighlight
                 }
+                aiStatus={
+                  aiAddedEntities?.has(task.display_id) ? 'added'
+                  : aiModifiedEntities?.has(task.display_id) ? 'modified'
+                  : undefined
+                }
+                onQuestionClick={onQuestionClick}
               />
             ))
           )}

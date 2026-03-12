@@ -19,6 +19,8 @@ Decide which path to take:
 | Substantial document attached (multi-page, design doc, spec, PRD, RFC) — regardless of phrasing | Full panel review | `prepared` |
 | Multiple files or complex document | Full panel review | `prepared` |
 | Audio/video file (any intent) | Transcribe first, then decide | depends |
+| Map edit request ("add step", "move task", "create activity") | Child job → `map-chat` agent | `success` |
+| "check alignment" / "find conflicts" / "scan for gaps" | Child job → `alignment` agent | `success` |
 | Simple question (no files) | Answer directly | `success` |
 | Small file + narrow factual question ("what format is this?", "who wrote this?") | Answer directly | `success` |
 | "search" / "find" intent | Search and answer | `success` |
@@ -104,6 +106,13 @@ Return the result signal:
 ````
 
 When you return `success`, the 7 backlog expert jobs are automatically cleaned up — they never start.
+
+## Post-Synthesis Enhancement
+
+After expert panel completes synthesis, additionally:
+1. Extract actionable requirements from the synthesis
+2. Create changeset via `POST /api/projects/:projectId/changesets` with source `"expert-panel"` and actor `"pm-coordinator"`
+3. Return executive summary + "View changeset #N" link
 
 ## Rules
 

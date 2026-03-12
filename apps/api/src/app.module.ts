@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ActivitiesModule } from './activities/activities.module';
 import { ChangesetsModule } from './changesets/changesets.module';
+import { ChatModule } from './chat/chat.module';
 import { HealthModule } from './health/health.module';
 import { MapModule } from './map/map.module';
 import { PersonasModule } from './personas/personas.module';
@@ -24,6 +25,7 @@ import { TasksModule } from './tasks/tasks.module';
     MapModule,
     SourcesModule,
     ChangesetsModule,
+    ChatModule,
   ],
 })
 export class AppModule {}

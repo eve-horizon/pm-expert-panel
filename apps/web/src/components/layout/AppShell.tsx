@@ -245,7 +245,7 @@ export function AppShell({
 
           <div className="px-3 py-4 border-t border-eden-border">
             <p className="text-[10px] font-medium uppercase tracking-wider text-eden-text-2">
-              Phase 2 — Changesets
+              Phase 3 — Intelligence
             </p>
           </div>
         </nav>

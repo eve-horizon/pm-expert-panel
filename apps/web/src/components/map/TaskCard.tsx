@@ -15,6 +15,10 @@ interface TaskCardProps {
   /** When true, dim the card to 15% opacity (role filter is active and this
    *  task doesn't match the highlighted persona). */
   dimmed: boolean;
+  /** AI modification indicator — 'modified' (purple border) or 'added' (green border). */
+  aiStatus?: 'modified' | 'added' | null;
+  /** Called when the user clicks the open-questions pill. Receives the first open question's ID. */
+  onQuestionClick?: (questionId: string) => void;
 }
 
 // Priority pill colors
@@ -32,10 +36,13 @@ const STATUS_COLORS: Record<string, string> = {
   done: 'bg-emerald-100 text-emerald-700',
 };
 
-export function TaskCard({ task, dimmed }: TaskCardProps) {
+export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   const personaColor = task.persona?.color ?? '#9ca3af';
+  const borderColor = aiStatus === 'modified' ? '#8b5cf6'
+    : aiStatus === 'added' ? '#10b981'
+    : personaColor;
   const priorityStyle =
     PRIORITY_COLORS[task.priority] ?? 'bg-gray-100 text-gray-600';
   const statusStyle =
@@ -47,9 +54,10 @@ export function TaskCard({ task, dimmed }: TaskCardProps) {
   return (
     <div
       className="bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-150"
+      data-display-id={task.display_id}
       style={{
         borderLeftWidth: '3px',
-        borderLeftColor: personaColor,
+        borderLeftColor: borderColor,
         opacity: dimmed ? 0.15 : 1,
       }}
     >
@@ -104,10 +112,18 @@ export function TaskCard({ task, dimmed }: TaskCardProps) {
             {task.status}
           </span>
           {openQuestions > 0 && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-eden-q-bg text-eden-q-text">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const firstOpen = task.questions.find((q) => q.status !== 'resolved');
+                if (firstOpen) onQuestionClick?.(firstOpen.id);
+              }}
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-eden-q-bg text-eden-q-text hover:bg-eden-q-bg/80 transition-colors"
+              data-testid="question-pill"
+            >
               <QuestionIcon className="w-3 h-3" />
               {openQuestions}
-            </span>
+            </button>
           )}
         </div>
       </div>

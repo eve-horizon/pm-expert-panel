@@ -61,6 +61,18 @@
   }
 }
 
+@layer utilities {
+  /* Flash animation for reference navigation (Phase 3) */
+  @keyframes flash-glow {
+    0% { box-shadow: 0 0 0 4px rgba(230,81,0,0.5); }
+    100% { box-shadow: 0 0 0 4px rgba(230,81,0,0); }
+  }
+
+  .flash-highlight {
+    animation: flash-glow 2s ease-out forwards;
+  }
+}
+
 @layer components {
   .eden-card {
     @apply rounded-eden bg-eden-surface shadow-card border border-eden-border

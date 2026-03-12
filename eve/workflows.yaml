@@ -22,3 +22,33 @@ workflows:
     hints:
       timeout_seconds: 900
       permission_policy: auto_edit
+
+  alignment-check:
+    trigger:
+      app:
+        event: changeset.accepted
+    with_apis:
+      - service: api
+        description: Eden Story Map API for reading map state and creating questions
+    steps:
+      - name: align
+        agent:
+          name: alignment
+    hints:
+      timeout_seconds: 300
+      permission_policy: auto_edit
+
+  question-evolution:
+    trigger:
+      app:
+        event: question.answered
+    with_apis:
+      - service: api
+        description: Eden Story Map API for reading questions/tasks and creating changesets
+    steps:
+      - name: evolve
+        agent:
+          name: question-agent
+    hints:
+      timeout_seconds: 300
+      permission_policy: auto_edit
