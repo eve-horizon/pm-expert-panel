@@ -11,8 +11,8 @@ interface AuditEntry {
   action: string;
   entity_type: string;
   entity_id: string;
-  actor: string;
-  details: string | null;
+  actor: string | null;
+  details: string | Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -216,12 +216,12 @@ function AuditEntryRow({ entry }: { entry: AuditEntry }) {
 
         <div className="flex items-center gap-2 text-xs text-eden-text-2">
           <ActorIcon className="w-3.5 h-3.5 flex-shrink-0" />
-          <span className="font-medium">{entry.actor}</span>
+          <span className="font-medium">{entry.actor ?? 'system'}</span>
         </div>
 
         {entry.details && (
-          <p className="mt-1.5 text-xs text-eden-text leading-relaxed">
-            {entry.details}
+          <p className="mt-1.5 text-xs text-eden-text leading-relaxed font-mono">
+            {typeof entry.details === 'string' ? entry.details : JSON.stringify(entry.details)}
           </p>
         )}
       </div>
