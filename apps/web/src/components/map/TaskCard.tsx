@@ -5,37 +5,18 @@ import { TaskCardExpanded } from './TaskCardExpanded';
 // ---------------------------------------------------------------------------
 // TaskCard — compact card for a single task within a step column
 //
-// White card with persona-colored left border. Shows persona badge, title,
-// priority/status pills, source badge, device badge, and question count.
-// Supports lifecycle treatments (proposed/discontinued) and handoff roles.
-// Clicking the chevron expands to show TaskCardExpanded inline below.
+// Matches prototype layout: title-first (large, bold), then a metadata row
+// below with display_id, persona role badges (small colored rectangles),
+// source badge, device badge, and question count.
+// Card has a 4px left border colored by persona. Expandable via chevron.
 // ---------------------------------------------------------------------------
 
 interface TaskCardProps {
   task: Task;
-  /** When true, dim the card to 12% opacity (role filter is active and this
-   *  task doesn't match the highlighted persona). */
   dimmed: boolean;
-  /** AI modification indicator — 'modified' (purple border) or 'added' (green border). */
   aiStatus?: 'modified' | 'added' | null;
-  /** Called when the user clicks the open-questions pill. Receives the first open question's ID. */
   onQuestionClick?: (questionId: string) => void;
 }
-
-// Priority pill colors
-const PRIORITY_COLORS: Record<string, string> = {
-  high: 'bg-red-100 text-red-700',
-  critical: 'bg-red-100 text-red-700',
-  medium: 'bg-amber-100 text-amber-700',
-  low: 'bg-emerald-100 text-emerald-700',
-};
-
-// Status pill colors
-const STATUS_COLORS: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-600',
-  active: 'bg-blue-100 text-blue-700',
-  done: 'bg-emerald-100 text-emerald-700',
-};
 
 // Source badge color map
 const SOURCE_COLORS: Record<string, { border: string; bg: string; text: string }> = {
@@ -47,10 +28,10 @@ const SOURCE_COLORS: Record<string, { border: string; bg: string; text: string }
 };
 
 // Device badge styles
-const DEVICE_STYLES: Record<string, string> = {
-  desktop: 'bg-gray-100 text-gray-500',
-  mobile:  'bg-amber-50 text-amber-700',
-  all:     'bg-indigo-50 text-indigo-700',
+const DEVICE_STYLES: Record<string, { bg: string; color: string }> = {
+  desktop: { bg: '#f3f4f6', color: '#6b7280' },
+  mobile:  { bg: '#fef3c7', color: '#92400e' },
+  all:     { bg: '#e0e7ff', color: '#4338ca' },
 };
 
 export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardProps) {
@@ -61,156 +42,194 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
   const roleInJourney = task.role_in_journey ?? 'owner';
 
   // --- Border color logic ---
-  // AI status overrides persona; lifecycle/handoff may override further
   let borderColor = aiStatus === 'modified' ? '#8b5cf6'
     : aiStatus === 'added' ? '#10b981'
     : personaColor;
 
-  // Lifecycle overrides
   if (lifecycle === 'proposed') borderColor = '#10b981';
   if (lifecycle === 'discontinued') borderColor = '#9ca3af';
 
-  const priorityStyle =
-    PRIORITY_COLORS[task.priority] ?? 'bg-gray-100 text-gray-600';
-  const statusStyle =
-    STATUS_COLORS[task.status] ?? 'bg-gray-100 text-gray-600';
   const openQuestions = task.questions.filter(
     (q) => q.status !== 'resolved',
   ).length;
 
-  // --- Card-level style overrides ---
+  // --- Card style ---
   const cardStyle: React.CSSProperties = {
-    borderLeftWidth: roleInJourney === 'handoff' ? '2px' : '3px',
-    borderLeftColor: borderColor,
+    background: '#fff',
+    border: '1px solid #e2e5e9',
+    borderRadius: '10px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+    overflow: 'hidden',
+    cursor: 'pointer',
+    borderLeft: `4px solid ${borderColor}`,
     borderLeftStyle: roleInJourney === 'handoff' ? 'dashed' : 'solid',
-    opacity: dimmed ? 0.12
-      : lifecycle === 'discontinued' ? 0.45
-      : roleInJourney === 'handoff' ? 0.85
-      : 1,
+    transition: 'all 0.2s',
   };
 
-  if (lifecycle === 'proposed') {
-    cardStyle.background = 'linear-gradient(135deg, #f0fdf4, #fff)';
+  if (dimmed) {
+    cardStyle.opacity = 0.12;
+    cardStyle.transform = 'scale(0.97)';
+    cardStyle.pointerEvents = 'none';
   } else if (lifecycle === 'discontinued') {
+    cardStyle.opacity = 0.45;
     cardStyle.background = '#f9fafb';
+  } else if (lifecycle === 'proposed') {
+    cardStyle.background = 'linear-gradient(135deg, #f0fdf4, #fff)';
   } else if (roleInJourney === 'handoff') {
+    cardStyle.opacity = 0.85;
     cardStyle.background = '#fafafa';
+    cardStyle.border = '2px dashed #d1d5db';
+    cardStyle.borderLeft = `4px dashed #d1d5db`;
   }
 
   return (
-    <div
-      className="bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-150"
-      data-display-id={task.display_id}
-      style={cardStyle}
-    >
-      {/* Compact view */}
-      <div className="px-3 py-2.5">
-        {/* Top row: persona badge + lifecycle/handoff badges + chevron */}
-        <div className="flex items-start justify-between gap-2 mb-1.5">
-          <div className="flex items-center gap-2 min-w-0 flex-wrap">
-            {task.persona && (
-              <span
-                className="inline-flex items-center justify-center flex-shrink-0
-                  w-6 h-6 rounded-md text-[10px] font-bold text-white uppercase"
-                style={{ backgroundColor: task.persona.color }}
-                title={task.persona.name}
-              >
-                {task.persona.code.slice(0, 2)}
-              </span>
-            )}
-            <span className="text-[10px] font-mono text-eden-text-2 flex-shrink-0">
-              {task.display_id}
-            </span>
-
-            {/* Lifecycle badges */}
-            {lifecycle === 'proposed' && (
-              <span
-                className="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider"
-                style={{
-                  color: '#059669',
-                  backgroundColor: 'rgba(5,150,105,0.1)',
-                  border: '1px solid #059669',
-                }}
-              >
-                2.0 Proposed
-              </span>
-            )}
-            {lifecycle === 'discontinued' && (
-              <span
-                className="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider line-through"
-                style={{
-                  color: '#9ca3af',
-                  backgroundColor: 'rgba(156,163,175,0.1)',
-                  border: '1px solid #9ca3af',
-                }}
-              >
-                Discontinued
-              </span>
-            )}
-
-            {/* Handoff / Shared badges */}
-            {roleInJourney === 'handoff' && (
-              <span
-                className="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider"
-                style={{
-                  color: '#a16207',
-                  backgroundColor: 'rgba(234,179,8,0.15)',
-                  border: '1px solid #eab308',
-                }}
-              >
-                {task.handoff_label ?? 'Handoff'}
-              </span>
-            )}
-            {roleInJourney === 'shared' && (
-              <span
-                className="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider"
-                style={{
-                  color: '#2563eb',
-                  backgroundColor: 'rgba(37,99,235,0.1)',
-                  border: '1px solid #2563eb',
-                }}
-              >
-                Shared
-              </span>
-            )}
-          </div>
+    <div style={cardStyle} data-display-id={task.display_id}>
+      <div style={{ padding: '10px 14px 8px' }}>
+        {/* Title row — title first, large and clear */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '6px' }}>
+          <h4
+            style={{
+              fontSize: '13px',
+              fontWeight: 700,
+              flex: 1,
+              lineHeight: 1.35,
+              minWidth: 0,
+              color: lifecycle === 'discontinued' ? '#9ca3af' : '#1a1a2e',
+              textDecoration: lifecycle === 'discontinued' ? 'line-through' : undefined,
+              margin: 0,
+            }}
+          >
+            {task.title}
+          </h4>
 
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex-shrink-0 p-0.5 rounded hover:bg-gray-100 transition-colors text-eden-text-2"
+            style={{
+              fontSize: '10px',
+              color: '#6b7280',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              flexShrink: 0,
+              marginTop: '3px',
+              transition: 'transform 0.15s',
+              transform: expanded ? 'rotate(180deg)' : undefined,
+              padding: 0,
+            }}
             aria-label={expanded ? 'Collapse task' : 'Expand task'}
           >
-            <ChevronIcon
-              className={`w-4 h-4 transition-transform duration-150 ${
-                expanded ? 'rotate-180' : ''
-              }`}
-            />
+            <ChevronIcon className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Title */}
-        <h4
-          className={`text-sm font-medium leading-snug mb-2 ${
-            lifecycle === 'discontinued'
-              ? 'text-gray-400 line-through'
-              : 'text-eden-text'
-          }`}
-        >
-          {task.title}
-        </h4>
+        {/* Metadata row: ID + persona badges + lifecycle/handoff + source + device + questions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+          {/* Display ID */}
+          <span
+            style={{
+              fontSize: '9px',
+              fontWeight: 700,
+              color: '#6b7280',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            {task.display_id}
+          </span>
 
-        {/* Pills row */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span
-            className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold capitalize ${priorityStyle}`}
-          >
-            {task.priority}
-          </span>
-          <span
-            className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold capitalize ${statusStyle}`}
-          >
-            {task.status}
-          </span>
+          {/* Persona role badge */}
+          {task.persona && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                fontSize: '8px',
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                letterSpacing: '0.2px',
+                color: '#fff',
+                padding: '1px 6px',
+                borderRadius: '3px',
+                backgroundColor: task.persona.color,
+              }}
+            >
+              {task.persona.code}
+            </span>
+          )}
+
+          {/* Lifecycle badges */}
+          {lifecycle === 'proposed' && (
+            <span
+              style={{
+                fontSize: '7px',
+                fontWeight: 800,
+                padding: '2px 6px',
+                borderRadius: '3px',
+                letterSpacing: '0.4px',
+                background: '#d1fae5',
+                color: '#065f46',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              2.0 PROPOSED
+            </span>
+          )}
+          {lifecycle === 'discontinued' && (
+            <span
+              style={{
+                fontSize: '7px',
+                fontWeight: 800,
+                padding: '2px 6px',
+                borderRadius: '3px',
+                letterSpacing: '0.4px',
+                background: '#f3f4f6',
+                color: '#6b7280',
+                textDecoration: 'line-through',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              DISCONTINUED
+            </span>
+          )}
+
+          {/* Handoff / Shared badges */}
+          {roleInJourney === 'handoff' && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                fontSize: '7px',
+                fontWeight: 800,
+                padding: '2px 6px',
+                borderRadius: '4px',
+                background: '#fef3c7',
+                color: '#92400e',
+                letterSpacing: '0.3px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {task.handoff_label ?? 'HANDOFF'}
+            </span>
+          )}
+          {roleInJourney === 'shared' && (
+            <span
+              style={{
+                fontSize: '7px',
+                fontWeight: 800,
+                padding: '2px 6px',
+                borderRadius: '3px',
+                background: 'rgba(37,99,235,0.1)',
+                color: '#2563eb',
+                border: '1px solid #2563eb',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              SHARED
+            </span>
+          )}
 
           {/* Source badge */}
           {task.source_type != null && (
@@ -218,16 +237,9 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
           )}
 
           {/* Device badge */}
-          {task.device && (
-            <span
-              className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
-                DEVICE_STYLES[task.device] ?? 'bg-gray-100 text-gray-500'
-              }`}
-            >
-              {task.device}
-            </span>
-          )}
+          {task.device && <DeviceBadge device={task.device} />}
 
+          {/* Open questions badge */}
           {openQuestions > 0 && (
             <button
               onClick={(e) => {
@@ -235,7 +247,20 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
                 const firstOpen = task.questions.find((q) => q.status !== 'resolved');
                 if (firstOpen) onQuestionClick?.(firstOpen.id);
               }}
-              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-eden-q-bg text-eden-q-text hover:bg-eden-q-bg/80 transition-colors"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '2px',
+                padding: '1px 6px',
+                borderRadius: '3px',
+                fontSize: '8px',
+                fontWeight: 700,
+                background: '#fffbeb',
+                color: '#92400e',
+                border: '1px solid #f59e0b',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
               data-testid="question-pill"
             >
               <QuestionIcon className="w-3 h-3" />
@@ -247,7 +272,7 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
 
       {/* Expanded detail */}
       {expanded && (
-        <div className="px-3 pb-3">
+        <div style={{ padding: '0 14px 12px', fontSize: '11px' }}>
           <TaskCardExpanded
             userStory={task.user_story}
             acceptanceCriteria={task.acceptance_criteria}
@@ -260,7 +285,7 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
 }
 
 // ---------------------------------------------------------------------------
-// SourceBadge — small colored badge indicating data provenance
+// SourceBadge
 // ---------------------------------------------------------------------------
 
 const DEFAULT_SOURCE_COLOR = { border: '#6b7280', bg: 'rgba(107,114,128,0.1)', text: '#6b7280' };
@@ -269,15 +294,45 @@ function SourceBadge({ sourceType }: { sourceType: string }) {
   const src = SOURCE_COLORS[sourceType] ?? DEFAULT_SOURCE_COLOR;
   return (
     <span
-      className="inline-block px-1.5 py-0.5 text-[8px] font-bold uppercase"
       style={{
+        fontSize: '8px',
+        fontWeight: 600,
+        padding: '1px 5px',
+        borderRadius: '3px',
         color: src.text,
         backgroundColor: src.bg,
         border: `1px solid ${src.border}`,
-        borderRadius: '3px',
+        whiteSpace: 'nowrap',
+        letterSpacing: '0.2px',
+        textTransform: 'uppercase',
       }}
     >
       {sourceType}
+    </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// DeviceBadge
+// ---------------------------------------------------------------------------
+
+function DeviceBadge({ device }: { device: string }) {
+  const style = DEVICE_STYLES[device] ?? { bg: '#f3f4f6', color: '#6b7280' };
+  return (
+    <span
+      style={{
+        fontSize: '8px',
+        fontWeight: 600,
+        padding: '1px 5px',
+        borderRadius: '3px',
+        whiteSpace: 'nowrap',
+        letterSpacing: '0.2px',
+        backgroundColor: style.bg,
+        color: style.color,
+        textTransform: 'uppercase',
+      }}
+    >
+      {device}
     </span>
   );
 }

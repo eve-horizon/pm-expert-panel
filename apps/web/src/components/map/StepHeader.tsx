@@ -1,11 +1,10 @@
 import type { Step } from './types';
 
 // ---------------------------------------------------------------------------
-// StepHeader — accent-colored column header for a step within an activity
+// StepHeader — orange accent column header for a step within an activity
 //
-// Sits at the top of each step column with the step's display_id, name,
-// and a task count badge. Uses the Eden accent orange for the top border
-// and an optional primary persona color for the left border.
+// Matches prototype: solid orange (#e65100) background with white text,
+// optional persona-colored 4px left border, display_id + name inline.
 // ---------------------------------------------------------------------------
 
 interface StepHeaderProps {
@@ -17,23 +16,32 @@ interface StepHeaderProps {
 export function StepHeader({ step, primaryPersonaColor }: StepHeaderProps) {
   return (
     <div
-      className="bg-white border-t-2 border-eden-accent rounded-t-lg px-3 py-2.5 shadow-sm"
-      style={primaryPersonaColor ? { borderLeftWidth: '4px', borderLeftColor: primaryPersonaColor } : undefined}
+      style={{
+        backgroundColor: '#e65100',
+        color: '#fff',
+        padding: '9px 14px',
+        fontSize: '11px',
+        fontWeight: 600,
+        borderRight: '1px solid rgba(255,255,255,0.15)',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        borderLeft: primaryPersonaColor
+          ? `4px solid ${primaryPersonaColor}`
+          : '4px solid transparent',
+      }}
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <span className="text-[10px] font-mono text-eden-accent font-semibold">
-            {step.display_id}
-          </span>
-          <h3 className="text-sm font-semibold text-eden-text leading-snug truncate">
-            {step.name}
-          </h3>
-        </div>
-
-        <span className="flex-shrink-0 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-eden-bg text-[10px] font-semibold text-eden-text-2">
-          {step.tasks.length}
-        </span>
-      </div>
+      <span
+        style={{
+          fontSize: '8px',
+          fontWeight: 500,
+          opacity: 0.5,
+          marginRight: '5px',
+        }}
+      >
+        {step.display_id}
+      </span>
+      {step.name}
     </div>
   );
 }

@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
-import type { MapResponse } from './types';
+import type { MapResponse, Activity, Persona } from './types';
 import { PersonaTabs } from './PersonaTabs';
 import { RoleFilterPills } from './RoleFilterPills';
 import { ActivityFilterBar } from './ActivityFilterBar';
 import { MapLegend } from './MapLegend';
-import { ActivityRow } from './ActivityRow';
 import { StepHeader } from './StepHeader';
 import { TaskCard } from './TaskCard';
 import { MiniMap } from './MiniMap';
@@ -17,10 +16,11 @@ import { MiniMap } from './MiniMap';
 // Fetches the map API, manages persona tab (server-side) and role highlight
 // (client-side) filters, activity filter, lifecycle toggle, and mini-map.
 //
-// Grid layout:
-//   - Columns = all steps across all activities, each 320px wide
-//   - Activities are row groups that span all columns (via ActivityRow)
-//   - Under each activity: one row of StepHeaders + one row of task columns
+// Grid layout (matches Ade's prototype):
+//   - Columns = ALL steps across ALL activities flowing horizontally
+//   - Row 1: Activity headers (each spanning its own steps' columns)
+//   - Row 2: Step headers (one per column)
+//   - Row 3: Task cells (one per column, vertically stacking cards)
 // ---------------------------------------------------------------------------
 
 interface StoryMapProps {
@@ -128,11 +128,23 @@ export function StoryMap({
 
   if (!data) return null;
 
-  // Collect the maximum step count across all activities (for column sizing)
-  const maxStepsInActivity = Math.max(
-    ...data.activities.map((a) => a.steps.length),
-    1, // Guard against empty
-  );
+  // Build column template: each step gets a minmax(280px, 1fr) column
+  const colTemplate = data.activities
+    .map((a) =>
+      (a.steps.length > 0 ? a.steps : [null])
+        .map(() => 'minmax(280px, 1fr)')
+        .join(' '),
+    )
+    .join(' ');
+
+  // Build per-activity column offsets for grid placement
+  let colOffset = 1;
+  const activityColumns: { start: number; span: number }[] = [];
+  for (const activity of data.activities) {
+    const span = Math.max(activity.steps.length, 1);
+    activityColumns.push({ start: colOffset, span });
+    colOffset += span;
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -169,34 +181,117 @@ export function StoryMap({
       )}
 
       {/* Scrollable grid area */}
-      <div ref={gridContainerRef} className="flex-1 overflow-auto eden-scroll p-4">
+      <div ref={gridContainerRef} className="flex-1 overflow-auto eden-scroll p-6 pb-32" style={{ backgroundColor: '#f0f2f5' }}>
         {data.activities.length === 0 ? (
           <EmptyMap />
         ) : (
           <div
-            className="grid gap-3 min-w-max"
+            className="story-grid"
             style={{
-              gridTemplateColumns: `repeat(${maxStepsInActivity}, minmax(320px, 320px))`,
+              display: 'grid',
+              gridTemplateColumns: colTemplate,
+              gridTemplateRows: 'auto auto 1fr',
+              gap: 0,
+              minWidth: 'fit-content',
             }}
           >
-            {data.activities.map((activity) => {
+            {/* ROW 1: Activity headers — each spans its own steps' columns */}
+            {data.activities.map((activity, actIdx) => {
+              const { start, span } = activityColumns[actIdx]!;
               const isDimmed =
                 selectedActivities.size > 0 &&
                 !selectedActivities.has(activity.id);
 
               return (
-                <ActivitySection
-                  key={activity.id}
+                <ActivityHeader
+                  key={`act-${activity.id}`}
                   activity={activity}
-                  stepCount={maxStepsInActivity}
-                  roleHighlight={roleHighlight}
-                  aiModifiedEntities={aiModifiedEntities}
-                  aiAddedEntities={aiAddedEntities}
-                  onQuestionClick={onQuestionClick}
+                  gridColumn={`${start} / span ${span}`}
                   dimmed={isDimmed}
-                  hideProposed={hideProposed}
+                  isLast={actIdx === data.activities.length - 1}
                 />
               );
+            })}
+
+            {/* ROW 2: Step headers — one per column */}
+            {data.activities.map((activity) => {
+              const isDimmed =
+                selectedActivities.size > 0 &&
+                !selectedActivities.has(activity.id);
+
+              return activity.steps.map((step) => {
+                const primaryPersonaColor = step.tasks[0]?.persona?.color ?? null;
+                return (
+                  <div
+                    key={`stp-${step.id}`}
+                    style={{
+                      gridRow: 2,
+                      opacity: isDimmed ? 0.1 : 1,
+                      pointerEvents: isDimmed ? 'none' : undefined,
+                    }}
+                  >
+                    <StepHeader
+                      step={step}
+                      primaryPersonaColor={primaryPersonaColor}
+                    />
+                  </div>
+                );
+              });
+            })}
+
+            {/* ROW 3: Task cells — one per column */}
+            {data.activities.map((activity) => {
+              const isDimmed =
+                selectedActivities.size > 0 &&
+                !selectedActivities.has(activity.id);
+
+              return activity.steps.map((step) => {
+                const visibleTasks = hideProposed
+                  ? step.tasks.filter((t) => (t.lifecycle ?? 'current') !== 'proposed')
+                  : step.tasks;
+
+                return (
+                  <div
+                    key={`tasks-${step.id}`}
+                    className="task-cell"
+                    style={{
+                      gridRow: 3,
+                      padding: '10px 8px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      borderRight: '1px dashed #d1d5db',
+                      background: '#f0f2f5',
+                      minHeight: '120px',
+                      opacity: isDimmed ? 0.1 : 1,
+                      pointerEvents: isDimmed ? 'none' : undefined,
+                    }}
+                  >
+                    {visibleTasks.length === 0 ? (
+                      <div className="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center">
+                        <p className="text-xs text-eden-text-2 italic">No tasks</p>
+                      </div>
+                    ) : (
+                      visibleTasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          dimmed={
+                            roleHighlight !== null &&
+                            task.persona?.code !== roleHighlight
+                          }
+                          aiStatus={
+                            aiAddedEntities?.has(task.display_id) ? 'added'
+                            : aiModifiedEntities?.has(task.display_id) ? 'modified'
+                            : undefined
+                          }
+                          onQuestionClick={onQuestionClick}
+                        />
+                      ))
+                    )}
+                  </div>
+                );
+              });
             })}
           </div>
         )}
@@ -221,108 +316,105 @@ export function StoryMap({
 }
 
 // ---------------------------------------------------------------------------
-// ActivitySection — renders one activity's header + step columns + tasks
+// ActivityHeader — dark header cell in row 1, spanning its steps' columns
 // ---------------------------------------------------------------------------
 
-interface ActivitySectionProps {
-  activity: MapResponse['activities'][number];
-  stepCount: number;
-  roleHighlight: string | null;
-  aiModifiedEntities?: Set<string>;
-  aiAddedEntities?: Set<string>;
-  onQuestionClick?: (questionId: string) => void;
-  dimmed?: boolean;
-  hideProposed?: boolean;
-}
-
-function ActivitySection({
+function ActivityHeader({
   activity,
-  stepCount,
-  roleHighlight,
-  aiModifiedEntities,
-  aiAddedEntities,
-  onQuestionClick,
-  dimmed = false,
-  hideProposed = false,
-}: ActivitySectionProps) {
-  // Dimming style applied to each grid child (cannot use a wrapper div
-  // because the children must participate directly in the parent grid).
-  const dimStyle: React.CSSProperties | undefined = dimmed
-    ? { opacity: 0.1, pointerEvents: 'none' }
-    : undefined;
+  gridColumn,
+  dimmed,
+  isLast,
+}: {
+  activity: Activity;
+  gridColumn: string;
+  dimmed: boolean;
+  isLast: boolean;
+}) {
+  // Collect unique personas that have tasks within this activity
+  const personaMap = new Map<string, Persona>();
+  for (const step of activity.steps) {
+    for (const task of step.tasks) {
+      if (task.persona && !personaMap.has(task.persona.id)) {
+        personaMap.set(task.persona.id, task.persona);
+      }
+    }
+  }
+  const personas = Array.from(personaMap.values());
+
+  // Count questions in this activity
+  const questionCount = activity.steps.reduce(
+    (sum, s) => sum + s.tasks.reduce(
+      (tSum, t) => tSum + t.questions.filter((q) => q.status !== 'resolved').length,
+      0,
+    ),
+    0,
+  );
 
   return (
-    <>
-      {/* Activity header band — spans all columns. The wrapper must carry
-          the gridColumn span so it participates in the parent grid correctly. */}
-      <div
-        style={{
-          gridColumn: `1 / ${stepCount + 1}`,
-          ...dimStyle,
-        }}
-      >
-        <ActivityRow activity={activity} stepCount={stepCount} />
+    <div
+      style={{
+        gridRow: 1,
+        gridColumn,
+        backgroundColor: '#1a1a2e',
+        color: '#fff',
+        padding: '12px 16px',
+        fontSize: '13px',
+        fontWeight: 700,
+        letterSpacing: '-0.2px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: '8px',
+        borderRight: isLast ? 'none' : '2px solid rgba(255,255,255,0.1)',
+        opacity: dimmed ? 0.1 : 1,
+        pointerEvents: dimmed ? 'none' : undefined,
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ fontSize: '9px', fontWeight: 500, opacity: 0.4, marginRight: '6px' }}>
+          {activity.display_id}
+        </span>
+        {activity.name}
       </div>
 
-      {/* Step headers — now with primary persona color */}
-      {activity.steps.map((step) => {
-        const primaryPersonaColor = step.tasks[0]?.persona?.color ?? null;
-        return (
-          <div key={step.id} style={dimStyle}>
-            <StepHeader
-              step={step}
-              primaryPersonaColor={primaryPersonaColor}
-            />
-          </div>
-        );
-      })}
-      {/* Fill remaining columns if this activity has fewer steps */}
-      {Array.from({ length: stepCount - activity.steps.length }).map(
-        (_, i) => (
-          <div key={`fill-header-${i}`} />
-        ),
-      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+        {/* Persona pills */}
+        {personas.map((p) => (
+          <span
+            key={p.id}
+            style={{
+              fontSize: '8px',
+              fontWeight: 800,
+              padding: '2px 7px',
+              borderRadius: '10px',
+              color: '#fff',
+              letterSpacing: '0.3px',
+              backgroundColor: p.color,
+            }}
+          >
+            {p.code}
+          </span>
+        ))}
 
-      {/* Task cards — one column per step */}
-      {activity.steps.map((step) => {
-        const visibleTasks = hideProposed
-          ? step.tasks.filter((t) => (t.lifecycle ?? 'current') !== 'proposed')
-          : step.tasks;
-
-        return (
-          <div key={`tasks-${step.id}`} className="space-y-2 pb-2" style={dimStyle}>
-            {visibleTasks.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center">
-                <p className="text-xs text-eden-text-2 italic">No tasks</p>
-              </div>
-            ) : (
-              visibleTasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  dimmed={
-                    roleHighlight !== null &&
-                    task.persona?.code !== roleHighlight
-                  }
-                  aiStatus={
-                    aiAddedEntities?.has(task.display_id) ? 'added'
-                    : aiModifiedEntities?.has(task.display_id) ? 'modified'
-                    : undefined
-                  }
-                  onQuestionClick={onQuestionClick}
-                />
-              ))
-            )}
-          </div>
-        );
-      })}
-      {/* Fill remaining columns for tasks too */}
-      {Array.from({ length: stepCount - activity.steps.length }).map(
-        (_, i) => (
-          <div key={`fill-tasks-${i}`} />
-        ),
-      )}
-    </>
+        {/* Question count badge */}
+        {questionCount > 0 && (
+          <span
+            style={{
+              background: '#f59e0b',
+              color: '#1a1a2e',
+              fontSize: '9px',
+              fontWeight: 800,
+              padding: '2px 8px',
+              borderRadius: '10px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            {questionCount} ?
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -369,39 +461,37 @@ function MapSkeleton() {
         </div>
       </div>
 
-      {/* Grid skeleton */}
-      <div className="flex-1 p-4 space-y-3">
-        {/* Activity header skeleton */}
-        <div className="h-10 bg-gray-800/10 rounded-lg animate-pulse" />
-
-        {/* Step headers */}
-        <div className="grid grid-cols-3 gap-3">
+      {/* Grid skeleton — horizontal layout */}
+      <div className="flex-1 p-6" style={{ backgroundColor: '#f0f2f5' }}>
+        {/* Activity headers row */}
+        <div className="flex gap-0 mb-0">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-14 bg-gray-200 rounded-lg animate-pulse"
+              className="h-12 flex-1 animate-pulse"
+              style={{ backgroundColor: 'rgba(26,26,46,0.3)' }}
             />
           ))}
         </div>
 
-        {/* Task cards */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* Step headers row */}
+        <div className="flex gap-0">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
-              className="h-24 bg-gray-100 rounded-lg animate-pulse"
+              className="h-10 flex-1 animate-pulse"
+              style={{ backgroundColor: 'rgba(230,81,0,0.3)' }}
             />
           ))}
         </div>
 
-        {/* Second activity skeleton */}
-        <div className="h-10 bg-gray-800/10 rounded-lg animate-pulse mt-4" />
-        <div className="grid grid-cols-3 gap-3">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-14 bg-gray-200 rounded-lg animate-pulse"
-            />
+        {/* Task cards area */}
+        <div className="flex gap-0 mt-0">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="flex-1 p-2 space-y-2" style={{ backgroundColor: '#f0f2f5' }}>
+              <div className="h-20 bg-white/60 rounded-lg animate-pulse" />
+              <div className="h-16 bg-white/40 rounded-lg animate-pulse" />
+            </div>
           ))}
         </div>
       </div>

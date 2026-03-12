@@ -5,13 +5,14 @@ import type { Activity, Persona } from './types';
 // MiniMap — bird's-eye navigation overlay for the story map grid
 //
 // Fixed bottom-right panel showing a miniature representation of the entire
-// grid. Click to scroll the main container; a viewport indicator tracks the
-// current scroll position. Collapsible header. Hidden in print.
+// grid. Uses the same horizontal layout as the main grid: activities flow
+// left-to-right, each with its steps as columns. Click to scroll the main
+// container; a viewport indicator tracks the current scroll position.
 // ---------------------------------------------------------------------------
 
 interface MiniMapProps {
   activities: Activity[];
-  personas: Persona[];
+  personas?: Persona[];
   containerRef: React.RefObject<HTMLDivElement>;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -22,14 +23,9 @@ interface MiniMapProps {
 
 const MINIMAP_WIDTH = 300;
 const HEADER_HEIGHT = 32;
-const ACTIVITY_BAR_HEIGHT = 14;
-const STEP_BAR_HEIGHT = 2;
-const TASK_BAR_HEIGHT = 3;
-const GAP = 2;
 
 export function MiniMap({
   activities,
-  personas,
   containerRef,
   collapsed = false,
   onToggleCollapse,
@@ -40,26 +36,8 @@ export function MiniMap({
   const bodyRef = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ x: 0, y: 0, w: 0, h: 0 });
 
-  // Build a persona color lookup
-  const personaColorMap = new Map<string, string>();
-  for (const p of personas) {
-    personaColorMap.set(p.id, p.color);
-  }
-
-  // Calculate total minimap body height
-  let totalHeight = 0;
-  for (const activity of activities) {
-    totalHeight += ACTIVITY_BAR_HEIGHT + GAP;
-    for (const step of activity.steps) {
-      totalHeight += STEP_BAR_HEIGHT + GAP;
-      const tasks = hideProposed
-        ? step.tasks.filter((t) => (t.lifecycle ?? 'current') !== 'proposed')
-        : step.tasks;
-      totalHeight += tasks.length * (TASK_BAR_HEIGHT + 1);
-    }
-    totalHeight += GAP;
-  }
-  totalHeight = Math.max(totalHeight, 40);
+  // Total columns = sum of all steps
+  const totalCols = activities.reduce((sum, a) => sum + Math.max(a.steps.length, 1), 0);
 
   // Track container scroll to update viewport indicator
   const updateViewport = useCallback(() => {
@@ -136,15 +114,15 @@ export function MiniMap({
         />
       </button>
 
-      {/* Body */}
+      {/* Body — horizontal grid matching main layout */}
       {!collapsed && (
         <div
           ref={bodyRef}
           className="relative cursor-crosshair"
           style={{
-            backgroundColor: '#f8f9fa',
-            height: Math.min(totalHeight + 8, 200),
-            padding: 4,
+            backgroundColor: '#f0f2f5',
+            padding: '8px',
+            minHeight: 60,
           }}
           onClick={handleBodyClick}
         >
@@ -160,84 +138,118 @@ export function MiniMap({
             }}
           />
 
-          {/* Miniature grid */}
-          {activities.map((activity) => {
-            const isDimmed =
-              selectedActivities != null && !selectedActivities.has(activity.id);
+          {/* Grid: horizontal layout */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${totalCols}, 1fr)`,
+              gap: '2px',
+              width: '100%',
+            }}
+          >
+            {/* Activity labels (row 1) */}
+            {activities.map((activity) => {
+              const span = Math.max(activity.steps.length, 1);
+              const isDimmed =
+                selectedActivities != null && !selectedActivities.has(activity.id);
 
-            return (
-              <div
-                key={activity.id}
-                className="mb-1"
-                style={{ opacity: isDimmed ? 0.15 : 1 }}
-              >
-                {/* Activity label bar */}
+              return (
                 <div
-                  className="rounded-sm mb-px overflow-hidden text-ellipsis whitespace-nowrap px-1 text-[7px] font-bold text-white/80"
+                  key={`mm-act-${activity.id}`}
                   style={{
+                    gridColumn: `span ${span}`,
                     backgroundColor: '#1e293b',
-                    height: ACTIVITY_BAR_HEIGHT,
-                    lineHeight: `${ACTIVITY_BAR_HEIGHT}px`,
+                    color: '#fff',
+                    fontSize: '7px',
+                    fontWeight: 700,
+                    padding: '3px 4px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    borderRadius: '2px',
+                    lineHeight: 1.3,
+                    opacity: isDimmed ? 0.15 : 1,
                   }}
                 >
-                  {activity.display_id} {activity.name}
+                  {activity.display_id}
                 </div>
+              );
+            })}
 
-                {/* Steps + tasks */}
-                {activity.steps.map((step) => {
-                  const tasks = hideProposed
-                    ? step.tasks.filter(
-                        (t) => (t.lifecycle ?? 'current') !== 'proposed',
-                      )
-                    : step.tasks;
+            {/* Step bars (row 2) */}
+            {activities.map((activity) => {
+              const isDimmed =
+                selectedActivities != null && !selectedActivities.has(activity.id);
 
-                  return (
-                    <div key={step.id} className="ml-1 mb-px">
-                      {/* Step accent bar */}
-                      <div
-                        className="rounded-sm"
-                        style={{
-                          height: STEP_BAR_HEIGHT,
-                          backgroundColor: '#f59e0b',
-                          opacity: 0.6,
-                        }}
-                      />
+              return activity.steps.map((step) => (
+                <div
+                  key={`mm-stp-${step.id}`}
+                  style={{
+                    height: '4px',
+                    backgroundColor: '#e65100',
+                    borderRadius: '1px',
+                    opacity: isDimmed ? 0.15 : 0.6,
+                  }}
+                />
+              ));
+            })}
 
-                      {/* Task bars */}
-                      {tasks.map((task) => {
-                        const lifecycle = task.lifecycle ?? 'current';
-                        const isDiscontinued = lifecycle === 'discontinued';
-                        const isProposed = lifecycle === 'proposed';
-                        const dimmedByRole =
-                          roleHighlight != null &&
-                          task.persona?.code !== roleHighlight;
+            {/* Task bars (row 3) */}
+            {activities.map((activity) => {
+              const isDimmed =
+                selectedActivities != null && !selectedActivities.has(activity.id);
 
-                        let barColor = task.persona?.color ?? '#9ca3af';
-                        if (isProposed) barColor = '#10b981';
-                        if (isDiscontinued) barColor = '#9ca3af';
+              return activity.steps.map((step) => {
+                const tasks = hideProposed
+                  ? step.tasks.filter((t) => (t.lifecycle ?? 'current') !== 'proposed')
+                  : step.tasks;
 
-                        return (
-                          <div
-                            key={task.id}
-                            className="rounded-sm mt-px"
-                            style={{
-                              height: TASK_BAR_HEIGHT,
-                              backgroundColor: barColor,
-                              opacity: isDiscontinued
-                                ? 0.3
-                                : dimmedByRole
-                                  ? 0.2
-                                  : 0.8,
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+                return (
+                  <div
+                    key={`mm-tasks-${step.id}`}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '1px',
+                      padding: '2px 1px',
+                      minHeight: '12px',
+                      opacity: isDimmed ? 0.15 : 1,
+                    }}
+                  >
+                    {tasks.map((task) => {
+                      const lifecycle = task.lifecycle ?? 'current';
+                      const isDiscontinued = lifecycle === 'discontinued';
+                      const isProposed = lifecycle === 'proposed';
+                      const dimmedByRole =
+                        roleHighlight != null &&
+                        task.persona?.code !== roleHighlight;
+
+                      let barColor = task.persona?.color ?? '#9ca3af';
+                      if (isProposed) barColor = '#10b981';
+                      if (isDiscontinued) barColor = '#9ca3af';
+
+                      return (
+                        <div
+                          key={`mm-t-${task.id}`}
+                          style={{
+                            height: '3px',
+                            borderRadius: '1px',
+                            backgroundColor: barColor,
+                            borderLeft: `2px solid ${barColor}`,
+                            opacity: isDiscontinued
+                              ? 0.3
+                              : dimmedByRole
+                                ? 0.2
+                                : 0.8,
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                );
+              });
+            })}
+          </div>
         </div>
       )}
     </div>
