@@ -364,7 +364,7 @@ export class MapService {
 
     if (filter.persona) {
       params.push(filter.persona);
-      conditions.push(`p.code = $${params.length}`);
+      conditions.push(`(p.id::text = $${params.length} OR p.code = $${params.length})`);
     }
 
     if (filter.release) {

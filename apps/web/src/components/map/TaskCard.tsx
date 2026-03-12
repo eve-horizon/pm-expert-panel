@@ -94,6 +94,7 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
   return (
     <div
       style={cardStyle}
+      data-testid={`task-card-${task.display_id}`}
       data-display-id={task.display_id}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

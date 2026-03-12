@@ -111,7 +111,7 @@ export function ChangesetsPage() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div data-testid="changes-page" className="p-8 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

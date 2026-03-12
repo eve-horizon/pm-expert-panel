@@ -130,7 +130,7 @@ export function SourcesPage() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div data-testid="sources-page" className="p-8 max-w-5xl mx-auto">
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-eden-text">Sources</h2>
@@ -142,6 +142,7 @@ export function SourcesPage() {
 
       {/* Upload zone */}
       <div
+        data-testid="upload-zone"
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

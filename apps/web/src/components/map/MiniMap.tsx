@@ -97,6 +97,7 @@ export function MiniMap({
 
   return (
     <div
+      data-testid="minimap"
       className="minimap fixed bottom-4 right-4 z-50 rounded-lg shadow-lg overflow-hidden print:hidden"
       style={{ width: MINIMAP_WIDTH }}
     >

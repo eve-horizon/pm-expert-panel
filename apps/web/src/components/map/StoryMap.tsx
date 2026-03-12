@@ -147,7 +147,7 @@ export function StoryMap({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" data-testid="story-map">
       {/* Persona tabs (server-side filter) */}
       <PersonaTabs
         personas={data.personas}
@@ -394,6 +394,7 @@ function ActivityHeader({
 
   return (
     <div
+      data-testid={`activity-${activity.display_id}`}
       style={{
         gridRow: 1,
         gridColumn,
@@ -467,6 +468,7 @@ function ActivityHeader({
 function MapStatsBar({ stats }: { stats: MapResponse['stats'] }) {
   return (
     <div
+      data-testid="stats-bar"
       style={{
         display: 'flex',
         alignItems: 'center',

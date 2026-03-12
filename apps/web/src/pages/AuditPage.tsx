@@ -92,7 +92,7 @@ export function AuditPage() {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div data-testid="audit-page" className="p-8 max-w-5xl mx-auto">
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-eden-text">Audit Trail</h2>
@@ -166,8 +166,8 @@ export function AuditPage() {
           <div className="absolute left-5 top-0 bottom-0 w-px bg-eden-border" />
 
           <div className="space-y-0">
-            {entries.map((entry) => (
-              <AuditEntryRow key={entry.id} entry={entry} />
+            {entries.map((entry, index) => (
+              <AuditEntryRow key={entry.id} entry={entry} index={index} />
             ))}
           </div>
 
@@ -193,9 +193,9 @@ export function AuditPage() {
 // AuditEntryRow — single timeline entry
 // ---------------------------------------------------------------------------
 
-function AuditEntryRow({ entry }: { entry: AuditEntry }) {
+function AuditEntryRow({ entry, index }: { entry: AuditEntry; index: number }) {
   return (
-    <div className="relative flex items-start gap-4 pl-10 py-3">
+    <div data-testid={`audit-entry-${index}`} className="relative flex items-start gap-4 pl-10 py-3">
       {/* Timeline dot */}
       <div className="absolute left-3.5 top-4 w-3 h-3 rounded-full border-2 border-eden-surface z-10">
         <ActionDot action={entry.action as AuditAction} />
