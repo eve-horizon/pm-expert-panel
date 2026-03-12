@@ -171,6 +171,9 @@ export function StoryMap({
         onSelectionChange={setSelectedActivities}
       />
 
+      {/* Stats bar — matching prototype header counters */}
+      <MapStatsBar stats={data.stats} />
+
       {/* Loading overlay for re-fetches */}
       {loading && (
         <div className="px-4 py-1">
@@ -452,6 +455,89 @@ function ActivityHeader({
             {questionCount} ?
           </span>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// MapStatsBar — prominent stat counters matching prototype header style
+// ---------------------------------------------------------------------------
+
+function MapStatsBar({ stats }: { stats: MapResponse['stats'] }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '24px',
+        padding: '10px 24px',
+        background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+        flexWrap: 'wrap',
+      }}
+    >
+      <StatNum n={stats.activity_count} label="Activities" />
+      <StatNum n={stats.step_count} label="Steps" />
+      <StatNum n={stats.task_count} label="Tasks" />
+      <StatNum n={stats.acceptance_criteria_count} label="ACs" />
+      <StatNum n={stats.question_count} label="Questions" />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '11px',
+          fontWeight: 600,
+          color: 'rgba(255,255,255,0.7)',
+        }}
+      >
+        <span style={{ fontSize: '18px', fontWeight: 800, color: '#fff' }}>
+          {stats.answered_question_count}/{stats.question_count}
+        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <div
+            style={{
+              width: '60px',
+              height: '5px',
+              background: 'rgba(255,255,255,0.15)',
+              borderRadius: '3px',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                width: stats.question_count > 0
+                  ? `${(stats.answered_question_count / stats.question_count) * 100}%`
+                  : '0%',
+                height: '100%',
+                background: '#10b981',
+                borderRadius: '3px',
+              }}
+            />
+          </div>
+          <span style={{ fontSize: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.4)' }}>
+            Answered
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatNum({ n, label }: { n: number; label: string }) {
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: '18px', fontWeight: 800, color: '#fff', lineHeight: 1.1 }}>{n}</div>
+      <div
+        style={{
+          fontSize: '8px',
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          color: 'rgba(255,255,255,0.4)',
+        }}
+      >
+        {label}
       </div>
     </div>
   );
