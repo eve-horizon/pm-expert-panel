@@ -7,14 +7,18 @@ import {
   Param,
   Post,
   Req,
-  Res,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../common/auth.guard';
 import { dbContext } from '../common/request.util';
 import { ChatGatewayService } from './chat-gateway.service';
 
-import type { Request, Response } from 'express';
+import type { Request } from 'express';
+
+function bearerToken(req: Request): string | undefined {
+  const auth = req.headers.authorization;
+  return auth?.startsWith('Bearer ') ? auth.slice(7) : undefined;
+}
 
 @Controller()
 @UseGuards(AuthGuard)
@@ -22,24 +26,33 @@ export class ChatController {
   constructor(private readonly chat: ChatGatewayService) {}
 
   @Get('projects/:projectId/chat/threads')
-  listThreads(@Param('projectId') projectId: string) {
-    return this.chat.listThreads(projectId);
+  listThreads(@Req() req: Request) {
+    return this.chat.listThreads(bearerToken(req));
   }
 
   @Post('projects/:projectId/chat/threads')
   @HttpCode(HttpStatus.CREATED)
   createThread(
     @Req() req: Request,
-    @Param('projectId') projectId: string,
+    @Param('projectId') _projectId: string,
     @Body() body: { message: string },
   ) {
     const ctx = dbContext(req);
-    return this.chat.createThread(projectId, body.message, ctx.user_id ?? 'anonymous');
+    const user = (req as any).user;
+    return this.chat.createThread(
+      body.message,
+      ctx.user_id ?? 'anonymous',
+      user?.email,
+      bearerToken(req),
+    );
   }
 
   @Get('chat/threads/:threadId/messages')
-  listMessages(@Param('threadId') threadId: string) {
-    return this.chat.listMessages(threadId);
+  listMessages(
+    @Req() req: Request,
+    @Param('threadId') threadId: string,
+  ) {
+    return this.chat.listMessages(threadId, bearerToken(req));
   }
 
   @Post('chat/threads/:threadId/messages')
@@ -50,39 +63,21 @@ export class ChatController {
     @Body() body: { message: string },
   ) {
     const ctx = dbContext(req);
-    return this.chat.sendMessage(threadId, body.message, ctx.user_id ?? 'anonymous');
+    const user = (req as any).user;
+    return this.chat.sendMessage(
+      threadId,
+      body.message,
+      ctx.user_id ?? 'anonymous',
+      user?.email,
+      bearerToken(req),
+    );
   }
 
-  @Get('chat/threads/:threadId/stream')
-  async stream(
+  @Get('chat/threads/:threadId/poll')
+  pollMessages(
+    @Req() req: Request,
     @Param('threadId') threadId: string,
-    @Res() res: Response,
   ) {
-    const upstream = await this.chat.getStreamResponse(threadId);
-
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
-
-    if (!upstream.body) {
-      res.end();
-      return;
-    }
-
-    const reader = (upstream.body as any).getReader();
-    const decoder = new TextDecoder();
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        res.write(decoder.decode(value, { stream: true }));
-      }
-    } catch {
-      // Client disconnected or upstream closed
-    } finally {
-      res.end();
-    }
+    return this.chat.listMessages(threadId, bearerToken(req));
   }
 }

@@ -1,7 +1,7 @@
 #!/bin/bash
 # scripts/smoke-test.sh — runs as a pipeline step after migrate
 set -euo pipefail
-BASE="https://eden.${ORG_SLUG}-eden-sandbox.eh1.incept5.dev"
+BASE="https://web.${ORG_SLUG:-incept5}-eden-sandbox.eh1.incept5.dev"
 
 echo "=== Phase 1 Smoke Tests ==="
 

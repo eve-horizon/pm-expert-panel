@@ -3,16 +3,46 @@ import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common'
 // ---------------------------------------------------------------------------
 // ChatGatewayService — proxies chat requests to Eve Gateway API
 //
-// When EVE_API_URL is configured (staging/production), proxies to Eve's
-// job/message system. Returns 503 when Eve is unavailable (local dev).
+// Uses Eve's thread + chat simulate endpoints:
+//   List threads:   GET  /projects/:eveProjectId/threads
+//   Create thread:  POST /projects/:eveProjectId/chat/simulate
+//   Get messages:   GET  /threads/:threadId/messages
+//   Send message:   POST /projects/:eveProjectId/chat/simulate (with thread_id)
 // ---------------------------------------------------------------------------
+
+export interface SimulateResponse {
+  thread_id: string;
+  route_id: string;
+  target: string;
+  job_ids: string[];
+  event_id: string;
+}
+
+export interface ThreadMessage {
+  id: string;
+  thread_id: string;
+  direction: 'inbound' | 'outbound';
+  actor_type: string;
+  actor_id: string | null;
+  body: string;
+  job_id: string | null;
+  created_at: string;
+}
+
+export interface EveThread {
+  id: string;
+  project_id: string;
+  key: string;
+  summary: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 @Injectable()
 export class ChatGatewayService {
   private readonly logger = new Logger(ChatGatewayService.name);
   private readonly eveApiUrl = process.env.EVE_API_URL;
   private readonly eveProjectId = process.env.EVE_PROJECT_ID;
-  private readonly eveServiceToken = process.env.EVE_SERVICE_TOKEN;
 
   private get available(): boolean {
     return Boolean(this.eveApiUrl && this.eveProjectId);
@@ -26,28 +56,27 @@ export class ChatGatewayService {
     }
   }
 
-  private get headers(): Record<string, string> {
-    return {
-      'Content-Type': 'application/json',
-      ...(this.eveServiceToken
-        ? { Authorization: `Bearer ${this.eveServiceToken}` }
-        : {}),
-    };
-  }
-
   private async proxy<T>(
     method: string,
     path: string,
     body?: unknown,
+    token?: string,
   ): Promise<T> {
     this.assertAvailable();
 
     const url = `${this.eveApiUrl}${path}`;
     this.logger.debug(`${method} ${url}`);
 
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
       method,
-      headers: this.headers,
+      headers,
       body: body ? JSON.stringify(body) : undefined,
     });
 
@@ -66,70 +95,86 @@ export class ChatGatewayService {
   // Threads
   // -------------------------------------------------------------------------
 
-  async listThreads(projectId: string): Promise<unknown[]> {
-    return this.proxy<unknown[]>(
+  async listThreads(token?: string): Promise<EveThread[]> {
+    const result = await this.proxy<{ threads: EveThread[] }>(
       'GET',
-      `/projects/${this.eveProjectId}/chat/threads?eden_project_id=${projectId}`,
+      `/projects/${this.eveProjectId}/threads`,
+      undefined,
+      token,
+    );
+    // Filter to user-facing threads (key starts with "api:" or "slack:"),
+    // excluding internal coordination threads
+    return (result.threads ?? []).filter(
+      (t) => !t.key.startsWith('coord:'),
     );
   }
 
   async createThread(
-    projectId: string,
     message: string,
     userId: string,
-  ): Promise<unknown> {
-    return this.proxy<unknown>('POST', `/projects/${this.eveProjectId}/chat/threads`, {
-      eden_project_id: projectId,
-      message,
-      user_id: userId,
-    });
+    email?: string,
+    token?: string,
+  ): Promise<SimulateResponse> {
+    return this.proxy<SimulateResponse>(
+      'POST',
+      `/projects/${this.eveProjectId}/chat/simulate`,
+      {
+        text: `@eve pm ${message}`,
+        team_id: 'eden-web',
+        provider: 'api',
+        user_id: userId,
+        external_email: email,
+      },
+      token,
+    );
   }
 
   // -------------------------------------------------------------------------
   // Messages
   // -------------------------------------------------------------------------
 
-  async listMessages(threadId: string): Promise<unknown[]> {
-    return this.proxy<unknown[]>(
+  async listMessages(threadId: string, token?: string): Promise<ThreadMessage[]> {
+    const result = await this.proxy<{ messages: ThreadMessage[]; total: number }>(
       'GET',
-      `/projects/${this.eveProjectId}/chat/threads/${threadId}/messages`,
+      `/threads/${threadId}/messages`,
+      undefined,
+      token,
     );
+    return result.messages ?? [];
   }
 
   async sendMessage(
     threadId: string,
     message: string,
     userId: string,
-  ): Promise<unknown> {
-    return this.proxy<unknown>(
+    email?: string,
+    token?: string,
+  ): Promise<SimulateResponse> {
+    return this.proxy<SimulateResponse>(
       'POST',
-      `/projects/${this.eveProjectId}/chat/threads/${threadId}/messages`,
-      { message, user_id: userId },
+      `/projects/${this.eveProjectId}/chat/simulate`,
+      {
+        text: `@eve pm ${message}`,
+        team_id: 'eden-web',
+        provider: 'api',
+        user_id: userId,
+        external_email: email,
+        thread_id: threadId,
+      },
+      token,
     );
   }
 
   // -------------------------------------------------------------------------
-  // SSE stream — returns the raw Response for piping
+  // Job follow — poll for agent response via job status
   // -------------------------------------------------------------------------
 
-  async getStreamResponse(threadId: string): Promise<Response> {
-    this.assertAvailable();
-
-    const url = `${this.eveApiUrl}/projects/${this.eveProjectId}/chat/threads/${threadId}/stream`;
-
-    const response = await fetch(url, {
-      headers: {
-        ...this.headers,
-        Accept: 'text/event-stream',
-      },
-    });
-
-    if (!response.ok) {
-      throw new ServiceUnavailableException(
-        `Eve SSE stream returned ${response.status}`,
-      );
-    }
-
-    return response;
+  async getJobStatus(jobId: string, token?: string): Promise<unknown> {
+    return this.proxy<unknown>(
+      'GET',
+      `/jobs/${jobId}`,
+      undefined,
+      token,
+    );
   }
 }

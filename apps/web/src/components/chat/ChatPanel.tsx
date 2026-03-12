@@ -1,17 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../api/client';
-import { getStoredToken } from '@eve-horizon/auth-react';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
 import { TypingIndicator } from './TypingIndicator';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — mapped from Eve's thread/message API
 // ---------------------------------------------------------------------------
 
-interface Thread {
+interface EveThread {
   id: string;
+  key: string;
   created_at: string;
+}
+
+interface EveMessage {
+  id: string;
+  thread_id: string;
+  direction: 'inbound' | 'outbound';
+  actor_type: string;
+  body: string;
+  created_at: string;
+}
+
+interface SimulateResponse {
+  thread_id: string;
+  job_ids: string[];
 }
 
 interface Message {
@@ -29,19 +43,29 @@ interface ChatPanelProps {
   onReviewChangeset?: (changesetId: string) => void;
 }
 
+/** Convert Eve messages to our display format */
+function toMessages(msgs: EveMessage[]): Message[] {
+  return msgs.map((m) => ({
+    id: m.id,
+    role: m.direction === 'inbound' ? 'user' as const : 'assistant' as const,
+    content: m.body,
+    created_at: m.created_at,
+  }));
+}
+
 // ---------------------------------------------------------------------------
 // ChatPanel
 // ---------------------------------------------------------------------------
 
 export function ChatPanel({ projectId, open, onClose, onReviewChangeset }: ChatPanelProps) {
-  const [_threads, setThreads] = useState<Thread[]>([]);
+  const [_threads, setThreads] = useState<EveThread[]>([]);
   const [activeThread, setActiveThread] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-  const [streaming, setStreaming] = useState(false);
+  const [polling, setPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -51,7 +75,7 @@ export function ChatPanel({ projectId, open, onClose, onReviewChangeset }: ChatP
   // Load threads when panel opens
   useEffect(() => {
     if (!open) return;
-    api.get<Thread[]>(`/projects/${projectId}/chat/threads`)
+    api.get<EveThread[]>(`/projects/${projectId}/chat/threads`)
       .then(setThreads)
       .catch(() => setError('Failed to load threads'));
   }, [projectId, open]);
@@ -59,104 +83,44 @@ export function ChatPanel({ projectId, open, onClose, onReviewChangeset }: ChatP
   // Load messages when thread selected
   useEffect(() => {
     if (!activeThread) return;
-    api.get<Message[]>(`/chat/threads/${activeThread}/messages`)
-      .then(setMessages)
+    api.get<EveMessage[]>(`/chat/threads/${activeThread}/messages`)
+      .then((msgs) => setMessages(toMessages(msgs)))
       .catch(() => setError('Failed to load messages'));
   }, [activeThread]);
 
-  // Connect to SSE stream using fetch (supports Authorization header)
-  const connectStream = useCallback((threadId: string) => {
-    // Abort any existing stream
-    abortRef.current?.abort();
+  // Poll for new messages after sending
+  const startPolling = useCallback((threadId: string, knownCount: number) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    setPolling(true);
 
-    const controller = new AbortController();
-    abortRef.current = controller;
+    let attempts = 0;
+    const maxAttempts = 60; // 5 minutes max polling
 
-    const token = getStoredToken();
-
-    fetch(`/api/chat/threads/${threadId}/stream`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (!response.ok || !response.body) {
-          setStreaming(false);
-          setError('Stream connection failed');
-          return;
+    pollRef.current = setInterval(async () => {
+      attempts++;
+      try {
+        const msgs = await api.get<EveMessage[]>(`/chat/threads/${threadId}/messages`);
+        const converted = toMessages(msgs);
+        if (converted.length > knownCount) {
+          setMessages(converted);
+          setPolling(false);
+          if (pollRef.current) clearInterval(pollRef.current);
         }
+      } catch {
+        // Ignore poll errors
+      }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-
-          // Parse SSE lines
-          const lines = buffer.split('\n');
-          buffer = lines.pop() ?? '';
-
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const raw = line.slice(6);
-
-            try {
-              const data = JSON.parse(raw);
-
-              if (data.type === 'content') {
-                setMessages((prev) => {
-                  const last = prev[prev.length - 1];
-                  if (last?.role === 'assistant' && !last.id) {
-                    // Append to in-flight streaming message
-                    return [
-                      ...prev.slice(0, -1),
-                      { ...last, content: last.content + data.content },
-                    ];
-                  }
-                  // Start a new streaming message
-                  return [
-                    ...prev,
-                    {
-                      id: '',
-                      role: 'assistant',
-                      content: data.content,
-                      created_at: new Date().toISOString(),
-                      metadata: data.metadata,
-                    },
-                  ];
-                });
-              } else if (data.type === 'done') {
-                setStreaming(false);
-                // Refresh messages to get the final persisted version
-                api
-                  .get<Message[]>(`/chat/threads/${threadId}/messages`)
-                  .then(setMessages)
-                  .catch(() => {});
-              } else if (data.type === 'error') {
-                setStreaming(false);
-                setError(data.content || 'Stream error');
-              }
-            } catch {
-              // Ignore parse errors from partial chunks
-            }
-          }
-        }
-      })
-      .catch((err) => {
-        if (err?.name !== 'AbortError') {
-          setStreaming(false);
-          setError('Stream disconnected');
-        }
-      });
+      if (attempts >= maxAttempts) {
+        setPolling(false);
+        if (pollRef.current) clearInterval(pollRef.current);
+      }
+    }, 5000);
   }, []);
 
-  // Cleanup stream on unmount
+  // Cleanup polling on unmount
   useEffect(() => {
     return () => {
-      abortRef.current?.abort();
+      if (pollRef.current) clearInterval(pollRef.current);
     };
   }, []);
 
@@ -167,38 +131,28 @@ export function ChatPanel({ projectId, open, onClose, onReviewChangeset }: ChatP
     setLoading(true);
 
     try {
+      // Optimistically add user message
+      const userMsg: Message = {
+        id: 'user-' + Date.now(),
+        role: 'user',
+        content: message,
+        created_at: new Date().toISOString(),
+      };
+
       if (!activeThread) {
-        // Create new thread with first message
-        const thread = await api.post<Thread & { id: string }>(
+        // Create new thread
+        const result = await api.post<SimulateResponse>(
           `/projects/${projectId}/chat/threads`,
           { message },
         );
-        setThreads((prev) => [thread, ...prev]);
-        setActiveThread(thread.id);
-        setMessages([
-          {
-            id: 'user-' + Date.now(),
-            role: 'user',
-            content: message,
-            created_at: new Date().toISOString(),
-          },
-        ]);
-        setStreaming(true);
-        connectStream(thread.id);
+        setActiveThread(result.thread_id);
+        setMessages([userMsg]);
+        startPolling(result.thread_id, 1); // Poll for AI response (> 1 message)
       } else {
         // Send to existing thread
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: 'user-' + Date.now(),
-            role: 'user',
-            content: message,
-            created_at: new Date().toISOString(),
-          },
-        ]);
+        setMessages((prev) => [...prev, userMsg]);
         await api.post(`/chat/threads/${activeThread}/messages`, { message });
-        setStreaming(true);
-        connectStream(activeThread);
+        startPolling(activeThread, messages.length + 1); // Poll for response
       }
     } catch {
       setError('Failed to send message');
@@ -210,7 +164,8 @@ export function ChatPanel({ projectId, open, onClose, onReviewChangeset }: ChatP
   const handleNewThread = () => {
     setActiveThread(null);
     setMessages([]);
-    abortRef.current?.abort();
+    setPolling(false);
+    if (pollRef.current) clearInterval(pollRef.current);
   };
 
   const handleChangesetClick = (changesetId: string) => {
@@ -268,7 +223,7 @@ export function ChatPanel({ projectId, open, onClose, onReviewChangeset }: ChatP
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 eden-scroll">
-          {messages.length === 0 && !streaming && (
+          {messages.length === 0 && !polling && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
                 <ChatBubbleIcon className="w-12 h-12 text-eden-text-2/30 mx-auto mb-3" />
@@ -292,7 +247,7 @@ export function ChatPanel({ projectId, open, onClose, onReviewChangeset }: ChatP
             />
           ))}
 
-          {streaming && <TypingIndicator />}
+          {polling && <TypingIndicator />}
 
           <div ref={messagesEndRef} />
         </div>
@@ -300,7 +255,7 @@ export function ChatPanel({ projectId, open, onClose, onReviewChangeset }: ChatP
         {/* Input */}
         <ChatInput
           onSend={handleSend}
-          disabled={loading || streaming}
+          disabled={loading || polling}
           data-testid="chat-input"
         />
       </div>

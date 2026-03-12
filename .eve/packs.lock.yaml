@@ -1,15 +1,15 @@
-resolved_at: 2026-03-11T14:32:15.878Z
-project_slug: pmbot
+resolved_at: 2026-03-12T16:10:30.500Z
+project_slug: eden
 packs:
   - id: eden
     source: ./
-    ref: cedc5691ed593048e4d0caf1b3439e3f37662807
+    ref: dfccb01227277e1dc9648ab2a5e05e2bc24a3d47
     pack_version: 1
 effective:
-  agents_count: 8
+  agents_count: 14
   teams_count: 1
   routes_count: 1
   profiles_count: 3
-  agents_hash: 3d2dd2d2
+  agents_hash: 6ed48bb2
   teams_hash: 32e0a8af
   chat_hash: 09f8d663
