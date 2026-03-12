@@ -33,6 +33,23 @@ async function bootstrap() {
   });
 
   // ---------------------------------------------------------------------------
+  // Dev auth bypass — inject a fake user when no real token present.
+  // Only active when DEV_AUTH_BYPASS=1 (never in production).
+  // ---------------------------------------------------------------------------
+  if (process.env.DEV_AUTH_BYPASS === '1') {
+    app.use((req: Request, _res: Response, next: NextFunction) => {
+      if (!(req as any).user) {
+        (req as any).user = {
+          id: 'dev-user',
+          orgId: 'dev-org',
+          email: 'dev@localhost',
+        };
+      }
+      next();
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // Auth config endpoint — returns Eve SSO/API URLs for SPA bootstrap
   // Mounted directly on Express before NestJS routing so it stays fast and
   // framework-independent, matching the @eve-horizon/auth README pattern.

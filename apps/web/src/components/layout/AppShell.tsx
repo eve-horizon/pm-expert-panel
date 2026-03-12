@@ -54,6 +54,18 @@ export function AppShell({
           icon: ReleaseIcon,
           match: '/releases',
         },
+        {
+          to: `/projects/${projectId}/changes`,
+          label: 'Changes',
+          icon: ChangesIcon,
+          match: '/changes',
+        },
+        {
+          to: `/projects/${projectId}/sources`,
+          label: 'Sources',
+          icon: SourcesIcon,
+          match: '/sources',
+        },
       ]
     : [];
 
@@ -233,7 +245,7 @@ export function AppShell({
 
           <div className="px-3 py-4 border-t border-eden-border">
             <p className="text-[10px] font-medium uppercase tracking-wider text-eden-text-2">
-              Phase 1 — Foundation
+              Phase 2 — Changesets
             </p>
           </div>
         </nav>
@@ -347,6 +359,44 @@ function ReleaseIcon({ className }: { className?: string }) {
     >
       <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
       <line x1="4" y1="22" x2="4" y2="15" />
+    </svg>
+  );
+}
+
+function ChangesIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 3v18" />
+      <path d="M8 7l4-4 4 4" />
+      <path d="M4 11h16" />
+      <path d="M4 15h16" />
+      <path d="M4 19h16" />
+    </svg>
+  );
+}
+
+function SourcesIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
     </svg>
   );
 }

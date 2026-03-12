@@ -1,12 +1,24 @@
 version: 1
 workflows:
-  pm-review:
+  ingestion-pipeline:
     trigger:
       system:
         event: doc.ingest
+    with_apis:
+      - service: api
+        description: Eden Story Map API for reading map state and creating changesets
     steps:
-      - agent:
-          name: pm-coordinator
+      - name: ingest
+        agent:
+          name: ingestion
+      - name: extract
+        depends_on: [ingest]
+        agent:
+          name: extraction
+      - name: synthesize
+        depends_on: [extract]
+        agent:
+          name: synthesis
     hints:
-      timeout_seconds: 600
+      timeout_seconds: 900
       permission_policy: auto_edit

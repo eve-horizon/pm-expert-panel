@@ -109,3 +109,57 @@ agents:
       git:
         commit: never
         push: never
+
+  # Phase 2: Ingestion Pipeline Agents
+  ingestion:
+    slug: ingestion
+    name: "Ingestion Agent"
+    description: "Extracts raw content from uploaded documents (PDF, DOCX, images, audio)"
+    skill: ingestion
+    harness_profile: expert
+    workflow: assistant
+    gateway:
+      policy: none
+    policies:
+      permission_policy: auto_edit
+      git:
+        commit: never
+        push: never
+
+  extraction:
+    slug: extraction
+    name: "Extraction Agent"
+    description: "Identifies personas, activities, steps, tasks, questions from extracted content"
+    skill: extraction
+    harness_profile: expert
+    workflow: assistant
+    gateway:
+      policy: none
+    policies:
+      permission_policy: auto_edit
+      git:
+        commit: never
+        push: never
+
+  synthesis:
+    slug: synthesis
+    name: "Synthesis Agent"
+    description: "Compares extracted requirements against current map state and creates changesets"
+    skill: synthesis
+    harness_profile: coordinator
+    workflow: assistant
+    context:
+      memory:
+        agent: shared
+        categories: [decisions, conventions, context]
+        max_items: 20
+      threads:
+        coordination: true
+        max_messages: 30
+    gateway:
+      policy: none
+    policies:
+      permission_policy: auto_edit
+      git:
+        commit: never
+        push: never

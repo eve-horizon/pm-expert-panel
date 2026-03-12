@@ -79,3 +79,8 @@ pipelines:
         script:
           run: ./scripts/smoke-test.sh
           timeout: 300
+      - name: smoke-test-p2
+        depends_on: [smoke-test]
+        script:
+          run: ./scripts/smoke-test-p2.sh
+          timeout: 300
