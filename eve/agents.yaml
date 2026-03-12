@@ -3,7 +3,6 @@ agents:
   # Coordinator — triages requests, processes files, dispatches expert panel when needed, synthesizes results
   pm-coordinator:
     slug: pm
-    alias: pm
     name: "PM Coordinator"
     description: "PM coordinator — triages requests, processes files, dispatches expert panel when needed, synthesizes results"
     skill: coordinator
