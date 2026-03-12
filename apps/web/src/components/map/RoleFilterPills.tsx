@@ -4,9 +4,16 @@ import type { Persona } from './types';
 // RoleFilterPills — client-side persona highlight/dim filter
 //
 // Unlike PersonaTabs (which re-fetches from the API), these pills apply a
-// purely visual filter: non-matching tasks dim to 15% opacity. This lets
+// purely visual filter: non-matching tasks dim to 12% opacity. This lets
 // users quickly scan the full grid for a specific persona's tasks without
 // losing the structural context of activities and steps.
+//
+// Visual spec:
+//   - Pill border: 2px solid <persona-color>, border-radius: 20px
+//   - Inactive: transparent bg, persona-colored text + border
+//   - Active: filled bg in persona color, white text
+//   - Hover: slight lift (translateY(-1px))
+//   - Single-select (one pill active at a time)
 // ---------------------------------------------------------------------------
 
 interface RoleFilterPillsProps {
@@ -34,23 +41,21 @@ export function RoleFilterPills({
           <button
             key={p.id}
             onClick={() => onToggle(isActive ? null : p.code)}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium
-              border transition-all duration-150
-              ${
-                isActive
-                  ? 'text-white border-transparent shadow-sm'
-                  : 'text-eden-text-2 border-eden-border bg-white hover:border-gray-300'
-              }`}
-            style={
-              isActive
-                ? { backgroundColor: p.color, borderColor: p.color }
-                : undefined
-            }
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium
+              transition-all duration-150 hover:-translate-y-px"
+            style={{
+              borderRadius: '20px',
+              border: `2px solid ${p.color}`,
+              backgroundColor: isActive ? p.color : 'transparent',
+              color: isActive ? '#fff' : p.color,
+            }}
           >
-            <span
-              className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: p.color }}
-            />
+            {!isActive && (
+              <span
+                className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                style={{ backgroundColor: p.color }}
+              />
+            )}
             {p.code}
           </button>
         );

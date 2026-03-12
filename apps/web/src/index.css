@@ -98,3 +98,68 @@
            hover:bg-eden-bg;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Print stylesheet — clean story-map output for PDF / paper
+   --------------------------------------------------------------------------- */
+
+@media print {
+  body {
+    background: #fff;
+    font-size: 9px;
+  }
+
+  header {
+    position: static;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  nav {
+    display: none !important;
+  }
+
+  .map-tabs {
+    position: static;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .eden-scroll {
+    overflow: visible !important;
+  }
+
+  .minimap {
+    display: none !important;
+  }
+
+  .chat-panel,
+  .questions-panel {
+    display: none !important;
+  }
+
+  [data-testid="cross-cutting-qs-btn"],
+  [data-testid="chat-toggle-btn"] {
+    display: none !important;
+  }
+
+  /* Force all cards expanded */
+  .card-body {
+    display: block !important;
+  }
+
+  .card-chevron {
+    display: none;
+  }
+
+  /* Preserve colors */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Avoid breaking cards */
+  .task-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

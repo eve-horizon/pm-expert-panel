@@ -1,19 +1,21 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import type { MapResponse } from './types';
 import { PersonaTabs } from './PersonaTabs';
 import { RoleFilterPills } from './RoleFilterPills';
+import { ActivityFilterBar } from './ActivityFilterBar';
 import { MapLegend } from './MapLegend';
 import { ActivityRow } from './ActivityRow';
 import { StepHeader } from './StepHeader';
 import { TaskCard } from './TaskCard';
+import { MiniMap } from './MiniMap';
 
 // ---------------------------------------------------------------------------
 // StoryMap — main component
 //
 // Fetches the map API, manages persona tab (server-side) and role highlight
-// (client-side) filters, then renders the CSS Grid.
+// (client-side) filters, activity filter, lifecycle toggle, and mini-map.
 //
 // Grid layout:
 //   - Columns = all steps across all activities, each 320px wide
@@ -25,13 +27,16 @@ interface StoryMapProps {
   aiModifiedEntities?: Set<string>;
   aiAddedEntities?: Set<string>;
   onQuestionClick?: (questionId: string) => void;
+  hideProposed?: boolean;
+  onHideProposedChange?: (value: boolean) => void;
 }
 
 export function StoryMap({
   aiModifiedEntities,
   aiAddedEntities,
   onQuestionClick,
-}: StoryMapProps = {}) {
+  hideProposed = false,
+}: StoryMapProps) {
   const { projectId } = useParams<{ projectId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -41,6 +46,15 @@ export function StoryMap({
 
   // Client-side role highlight (dims non-matching cards)
   const [roleHighlight, setRoleHighlight] = useState<string | null>(null);
+
+  // Activity filter state
+  const [selectedActivities, setSelectedActivities] = useState<Set<string>>(new Set());
+
+  // Mini-map collapsed state
+  const [miniMapCollapsed, setMiniMapCollapsed] = useState(false);
+
+  // Scrollable grid container ref (for MiniMap navigation)
+  const gridContainerRef = useRef<HTMLDivElement>(null);
 
   // Data state
   const [data, setData] = useState<MapResponse | null>(null);
@@ -60,6 +74,14 @@ export function StoryMap({
         `/projects/${projectId}/map${qs ? `?${qs}` : ''}`,
       );
       setData(resp);
+
+      // Initialize activity selection to all activities on first load
+      setSelectedActivities((prev) => {
+        if (prev.size === 0 || prev.size === data?.activities.length) {
+          return new Set(resp.activities.map((a) => a.id));
+        }
+        return prev;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load map');
     } finally {
@@ -119,6 +141,8 @@ export function StoryMap({
         personas={data.personas}
         active={personaTab}
         onSelect={handlePersonaTabSelect}
+        personaCounts={data.stats.persona_counts}
+        totalTaskCount={data.stats.task_count}
       />
 
       {/* Role filter pills (client-side highlight) */}
@@ -126,6 +150,13 @@ export function StoryMap({
         personas={data.personas}
         active={roleHighlight}
         onToggle={setRoleHighlight}
+      />
+
+      {/* Activity filter bar */}
+      <ActivityFilterBar
+        activities={data.activities}
+        selected={selectedActivities}
+        onSelectionChange={setSelectedActivities}
       />
 
       {/* Loading overlay for re-fetches */}
@@ -138,7 +169,7 @@ export function StoryMap({
       )}
 
       {/* Scrollable grid area */}
-      <div className="flex-1 overflow-auto eden-scroll p-4">
+      <div ref={gridContainerRef} className="flex-1 overflow-auto eden-scroll p-4">
         {data.activities.length === 0 ? (
           <EmptyMap />
         ) : (
@@ -148,23 +179,43 @@ export function StoryMap({
               gridTemplateColumns: `repeat(${maxStepsInActivity}, minmax(320px, 320px))`,
             }}
           >
-            {data.activities.map((activity) => (
-              <ActivitySection
-                key={activity.id}
-                activity={activity}
-                stepCount={maxStepsInActivity}
-                roleHighlight={roleHighlight}
-                aiModifiedEntities={aiModifiedEntities}
-                aiAddedEntities={aiAddedEntities}
-                onQuestionClick={onQuestionClick}
-              />
-            ))}
+            {data.activities.map((activity) => {
+              const isDimmed =
+                selectedActivities.size > 0 &&
+                !selectedActivities.has(activity.id);
+
+              return (
+                <ActivitySection
+                  key={activity.id}
+                  activity={activity}
+                  stepCount={maxStepsInActivity}
+                  roleHighlight={roleHighlight}
+                  aiModifiedEntities={aiModifiedEntities}
+                  aiAddedEntities={aiAddedEntities}
+                  onQuestionClick={onQuestionClick}
+                  dimmed={isDimmed}
+                  hideProposed={hideProposed}
+                />
+              );
+            })}
           </div>
         )}
       </div>
 
       {/* Legend bar */}
       <MapLegend stats={data.stats} personas={data.personas} />
+
+      {/* Mini-Map */}
+      <MiniMap
+        activities={data.activities}
+        personas={data.personas}
+        containerRef={gridContainerRef}
+        collapsed={miniMapCollapsed}
+        onToggleCollapse={() => setMiniMapCollapsed(!miniMapCollapsed)}
+        selectedActivities={selectedActivities}
+        roleHighlight={roleHighlight}
+        hideProposed={hideProposed}
+      />
     </div>
   );
 }
@@ -180,6 +231,8 @@ interface ActivitySectionProps {
   aiModifiedEntities?: Set<string>;
   aiAddedEntities?: Set<string>;
   onQuestionClick?: (questionId: string) => void;
+  dimmed?: boolean;
+  hideProposed?: boolean;
 }
 
 function ActivitySection({
@@ -189,16 +242,40 @@ function ActivitySection({
   aiModifiedEntities,
   aiAddedEntities,
   onQuestionClick,
+  dimmed = false,
+  hideProposed = false,
 }: ActivitySectionProps) {
+  // Dimming style applied to each grid child (cannot use a wrapper div
+  // because the children must participate directly in the parent grid).
+  const dimStyle: React.CSSProperties | undefined = dimmed
+    ? { opacity: 0.1, pointerEvents: 'none' }
+    : undefined;
+
   return (
     <>
-      {/* Activity header band — spans all columns */}
-      <ActivityRow activity={activity} stepCount={stepCount} />
+      {/* Activity header band — spans all columns. The wrapper must carry
+          the gridColumn span so it participates in the parent grid correctly. */}
+      <div
+        style={{
+          gridColumn: `1 / ${stepCount + 1}`,
+          ...dimStyle,
+        }}
+      >
+        <ActivityRow activity={activity} stepCount={stepCount} />
+      </div>
 
-      {/* Step headers */}
-      {activity.steps.map((step) => (
-        <StepHeader key={step.id} step={step} />
-      ))}
+      {/* Step headers — now with primary persona color */}
+      {activity.steps.map((step) => {
+        const primaryPersonaColor = step.tasks[0]?.persona?.color ?? null;
+        return (
+          <div key={step.id} style={dimStyle}>
+            <StepHeader
+              step={step}
+              primaryPersonaColor={primaryPersonaColor}
+            />
+          </div>
+        );
+      })}
       {/* Fill remaining columns if this activity has fewer steps */}
       {Array.from({ length: stepCount - activity.steps.length }).map(
         (_, i) => (
@@ -207,32 +284,38 @@ function ActivitySection({
       )}
 
       {/* Task cards — one column per step */}
-      {activity.steps.map((step) => (
-        <div key={`tasks-${step.id}`} className="space-y-2 pb-2">
-          {step.tasks.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center">
-              <p className="text-xs text-eden-text-2 italic">No tasks</p>
-            </div>
-          ) : (
-            step.tasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                dimmed={
-                  roleHighlight !== null &&
-                  task.persona?.code !== roleHighlight
-                }
-                aiStatus={
-                  aiAddedEntities?.has(task.display_id) ? 'added'
-                  : aiModifiedEntities?.has(task.display_id) ? 'modified'
-                  : undefined
-                }
-                onQuestionClick={onQuestionClick}
-              />
-            ))
-          )}
-        </div>
-      ))}
+      {activity.steps.map((step) => {
+        const visibleTasks = hideProposed
+          ? step.tasks.filter((t) => (t.lifecycle ?? 'current') !== 'proposed')
+          : step.tasks;
+
+        return (
+          <div key={`tasks-${step.id}`} className="space-y-2 pb-2" style={dimStyle}>
+            {visibleTasks.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-gray-200 px-3 py-4 text-center">
+                <p className="text-xs text-eden-text-2 italic">No tasks</p>
+              </div>
+            ) : (
+              visibleTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  dimmed={
+                    roleHighlight !== null &&
+                    task.persona?.code !== roleHighlight
+                  }
+                  aiStatus={
+                    aiAddedEntities?.has(task.display_id) ? 'added'
+                    : aiModifiedEntities?.has(task.display_id) ? 'modified'
+                    : undefined
+                  }
+                  onQuestionClick={onQuestionClick}
+                />
+              ))
+            )}
+          </div>
+        );
+      })}
       {/* Fill remaining columns for tasks too */}
       {Array.from({ length: stepCount - activity.steps.length }).map(
         (_, i) => (

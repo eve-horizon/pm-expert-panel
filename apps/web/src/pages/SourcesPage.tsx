@@ -14,6 +14,14 @@ interface Source {
   file_size: number | null;
   created_at: string;
   upload_url?: string;
+  excerpt?: string;
+}
+
+interface SourceTask {
+  id: string;
+  display_id: string;
+  title: string;
+  role: string | null;
 }
 
 type SourceStatus = 'uploaded' | 'processing' | 'extracted' | 'synthesized' | 'failed';
@@ -33,6 +41,11 @@ export function SourcesPage() {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Detail panel state
+  const [selectedSource, setSelectedSource] = useState<Source | null>(null);
+  const [sourceTasks, setSourceTasks] = useState<SourceTask[]>([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+
   const fetchSources = useCallback(async () => {
     if (!projectId) return;
     setLoading(true);
@@ -50,6 +63,24 @@ export function SourcesPage() {
   useEffect(() => {
     fetchSources();
   }, [fetchSources]);
+
+  const selectSource = useCallback(async (source: Source) => {
+    if (selectedSource?.id === source.id) {
+      setSelectedSource(null);
+      setSourceTasks([]);
+      return;
+    }
+    setSelectedSource(source);
+    setDetailLoading(true);
+    try {
+      const tasks = await api.get<SourceTask[]>(`/sources/${source.id}/tasks`);
+      setSourceTasks(tasks);
+    } catch {
+      setSourceTasks([]);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, [selectedSource]);
 
   const handleUpload = async (file: File) => {
     if (!projectId) return;
@@ -191,11 +222,26 @@ export function SourcesPage() {
             </thead>
             <tbody>
               {sources.map((source) => (
-                <SourceRow key={source.id} source={source} />
+                <SourceRow
+                  key={source.id}
+                  source={source}
+                  selected={selectedSource?.id === source.id}
+                  onClick={() => selectSource(source)}
+                />
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Source detail panel */}
+      {selectedSource && (
+        <SourceDetailPanel
+          source={selectedSource}
+          tasks={sourceTasks}
+          loading={detailLoading}
+          onClose={() => { setSelectedSource(null); setSourceTasks([]); }}
+        />
       )}
     </div>
   );
@@ -205,9 +251,21 @@ export function SourcesPage() {
 // SourceRow
 // ---------------------------------------------------------------------------
 
-function SourceRow({ source }: { source: Source }) {
+function SourceRow({
+  source,
+  selected,
+  onClick,
+}: {
+  source: Source;
+  selected: boolean;
+  onClick: () => void;
+}) {
   return (
-    <tr className="border-b border-eden-border last:border-0 hover:bg-eden-bg/30 transition-colors">
+    <tr
+      onClick={onClick}
+      className={`border-b border-eden-border last:border-0 cursor-pointer transition-colors
+        ${selected ? 'bg-eden-accent/5 border-l-2 border-l-eden-accent' : 'hover:bg-eden-bg/30'}`}
+    >
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <FileTypeIcon contentType={source.content_type} />
@@ -229,6 +287,135 @@ function SourceRow({ source }: { source: Source }) {
         {formatDate(source.created_at)}
       </td>
     </tr>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SourceDetailPanel — expanded view below the table
+// ---------------------------------------------------------------------------
+
+function SourceDetailPanel({
+  source,
+  tasks,
+  loading,
+  onClose,
+}: {
+  source: Source;
+  tasks: SourceTask[];
+  loading: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <div className="mt-4 bg-eden-surface rounded-eden border border-eden-border overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-eden-border bg-eden-bg/30">
+        <div className="flex items-center gap-3">
+          <FileTypeIcon contentType={source.content_type} />
+          <h3 className="text-sm font-semibold text-eden-text">{source.filename}</h3>
+          <SourceStatusBadge status={source.status as SourceStatus} />
+        </div>
+        <button
+          onClick={onClose}
+          className="text-eden-text-2 hover:text-eden-text transition-colors"
+        >
+          <CloseIcon className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Metadata */}
+      <div className="px-5 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm border-b border-eden-border">
+        <div>
+          <p className="text-[10px] font-medium text-eden-text-2 uppercase tracking-wider mb-0.5">
+            Type
+          </p>
+          <p className="text-eden-text font-mono text-xs">{source.content_type}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-medium text-eden-text-2 uppercase tracking-wider mb-0.5">
+            Size
+          </p>
+          <p className="text-eden-text text-xs">
+            {source.file_size != null ? formatSize(source.file_size) : 'Unknown'}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-medium text-eden-text-2 uppercase tracking-wider mb-0.5">
+            Status
+          </p>
+          <p className="text-eden-text text-xs capitalize">{source.status}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-medium text-eden-text-2 uppercase tracking-wider mb-0.5">
+            Uploaded
+          </p>
+          <p className="text-eden-text text-xs">{formatDate(source.created_at)}</p>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="px-5 py-3 border-b border-eden-border">
+        <a
+          href={`/api/sources/${source.id}/download`}
+          className="eden-btn-secondary text-xs"
+          download
+        >
+          <DownloadIcon className="w-3.5 h-3.5" />
+          Download Original
+        </a>
+      </div>
+
+      {/* Excerpt */}
+      {source.excerpt && (
+        <div className="px-5 py-4 border-b border-eden-border">
+          <h4 className="text-[10px] font-medium text-eden-text-2 uppercase tracking-wider mb-2">
+            Excerpt
+          </h4>
+          <div className="rounded-lg bg-eden-bg/50 border border-eden-border p-3 text-xs text-eden-text leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto">
+            {source.excerpt}
+          </div>
+        </div>
+      )}
+
+      {/* Related tasks */}
+      <div className="px-5 py-4">
+        <h4 className="text-[10px] font-medium text-eden-text-2 uppercase tracking-wider mb-2">
+          Tasks from this source
+        </h4>
+        {loading ? (
+          <div className="space-y-2">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-8 bg-gray-100 rounded animate-pulse" />
+            ))}
+          </div>
+        ) : tasks.length === 0 ? (
+          <p className="text-xs text-eden-text-2 italic">
+            No tasks have been created from this source yet.
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            {tasks.map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center gap-2 rounded-lg border border-eden-border px-3 py-2"
+              >
+                <span className="inline-flex items-center justify-center w-4 h-4 rounded bg-emerald-100 text-emerald-700 text-[9px] font-bold flex-shrink-0">
+                  T
+                </span>
+                <span className="text-[10px] font-mono text-eden-text-2">
+                  {task.display_id}
+                </span>
+                <span className="text-xs text-eden-text truncate">{task.title}</span>
+                {task.role && (
+                  <span className="ml-auto text-[10px] text-eden-text-2 bg-eden-bg px-1.5 py-0.5 rounded flex-shrink-0">
+                    {task.role}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -340,6 +527,41 @@ function UploadIcon({ className }: { className?: string }) {
       <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
       <polyline points="17 8 12 3 7 8" />
       <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
+}
+
+function CloseIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function DownloadIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
     </svg>
   );
 }

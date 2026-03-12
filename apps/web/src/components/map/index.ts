@@ -5,6 +5,8 @@ export { TaskCard } from './TaskCard';
 export { TaskCardExpanded } from './TaskCardExpanded';
 export { PersonaTabs } from './PersonaTabs';
 export { RoleFilterPills } from './RoleFilterPills';
+export { ActivityFilterBar } from './ActivityFilterBar';
 export { MapLegend } from './MapLegend';
 export { EvolvedBadge } from './EvolvedBadge';
+export { MiniMap } from './MiniMap';
 export type * from './types';

@@ -6,13 +6,14 @@ import { TaskCardExpanded } from './TaskCardExpanded';
 // TaskCard — compact card for a single task within a step column
 //
 // White card with persona-colored left border. Shows persona badge, title,
-// priority/status pills, and question count. Clicking the chevron expands
-// to show TaskCardExpanded inline below.
+// priority/status pills, source badge, device badge, and question count.
+// Supports lifecycle treatments (proposed/discontinued) and handoff roles.
+// Clicking the chevron expands to show TaskCardExpanded inline below.
 // ---------------------------------------------------------------------------
 
 interface TaskCardProps {
   task: Task;
-  /** When true, dim the card to 15% opacity (role filter is active and this
+  /** When true, dim the card to 12% opacity (role filter is active and this
    *  task doesn't match the highlighted persona). */
   dimmed: boolean;
   /** AI modification indicator — 'modified' (purple border) or 'added' (green border). */
@@ -36,13 +37,39 @@ const STATUS_COLORS: Record<string, string> = {
   done: 'bg-emerald-100 text-emerald-700',
 };
 
+// Source badge color map
+const SOURCE_COLORS: Record<string, { border: string; bg: string; text: string }> = {
+  research:    { border: '#6b7280', bg: 'rgba(107,114,128,0.1)', text: '#6b7280' },
+  transcript:  { border: '#0891b2', bg: 'rgba(8,145,178,0.1)',   text: '#0891b2' },
+  'scope-doc': { border: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  text: '#7c3aed' },
+  both:        { border: '#059669', bg: 'rgba(5,150,105,0.1)',    text: '#059669' },
+  ingestion:   { border: '#6b7280', bg: 'rgba(107,114,128,0.1)', text: '#6b7280' },
+};
+
+// Device badge styles
+const DEVICE_STYLES: Record<string, string> = {
+  desktop: 'bg-gray-100 text-gray-500',
+  mobile:  'bg-amber-50 text-amber-700',
+  all:     'bg-indigo-50 text-indigo-700',
+};
+
 export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   const personaColor = task.persona?.color ?? '#9ca3af';
-  const borderColor = aiStatus === 'modified' ? '#8b5cf6'
+  const lifecycle = task.lifecycle ?? 'current';
+  const roleInJourney = task.role_in_journey ?? 'owner';
+
+  // --- Border color logic ---
+  // AI status overrides persona; lifecycle/handoff may override further
+  let borderColor = aiStatus === 'modified' ? '#8b5cf6'
     : aiStatus === 'added' ? '#10b981'
     : personaColor;
+
+  // Lifecycle overrides
+  if (lifecycle === 'proposed') borderColor = '#10b981';
+  if (lifecycle === 'discontinued') borderColor = '#9ca3af';
+
   const priorityStyle =
     PRIORITY_COLORS[task.priority] ?? 'bg-gray-100 text-gray-600';
   const statusStyle =
@@ -51,21 +78,36 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
     (q) => q.status !== 'resolved',
   ).length;
 
+  // --- Card-level style overrides ---
+  const cardStyle: React.CSSProperties = {
+    borderLeftWidth: roleInJourney === 'handoff' ? '2px' : '3px',
+    borderLeftColor: borderColor,
+    borderLeftStyle: roleInJourney === 'handoff' ? 'dashed' : 'solid',
+    opacity: dimmed ? 0.12
+      : lifecycle === 'discontinued' ? 0.45
+      : roleInJourney === 'handoff' ? 0.85
+      : 1,
+  };
+
+  if (lifecycle === 'proposed') {
+    cardStyle.background = 'linear-gradient(135deg, #f0fdf4, #fff)';
+  } else if (lifecycle === 'discontinued') {
+    cardStyle.background = '#f9fafb';
+  } else if (roleInJourney === 'handoff') {
+    cardStyle.background = '#fafafa';
+  }
+
   return (
     <div
       className="bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-150"
       data-display-id={task.display_id}
-      style={{
-        borderLeftWidth: '3px',
-        borderLeftColor: borderColor,
-        opacity: dimmed ? 0.15 : 1,
-      }}
+      style={cardStyle}
     >
       {/* Compact view */}
       <div className="px-3 py-2.5">
-        {/* Top row: persona badge + chevron */}
+        {/* Top row: persona badge + lifecycle/handoff badges + chevron */}
         <div className="flex items-start justify-between gap-2 mb-1.5">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
             {task.persona && (
               <span
                 className="inline-flex items-center justify-center flex-shrink-0
@@ -79,6 +121,58 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
             <span className="text-[10px] font-mono text-eden-text-2 flex-shrink-0">
               {task.display_id}
             </span>
+
+            {/* Lifecycle badges */}
+            {lifecycle === 'proposed' && (
+              <span
+                className="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider"
+                style={{
+                  color: '#059669',
+                  backgroundColor: 'rgba(5,150,105,0.1)',
+                  border: '1px solid #059669',
+                }}
+              >
+                2.0 Proposed
+              </span>
+            )}
+            {lifecycle === 'discontinued' && (
+              <span
+                className="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider line-through"
+                style={{
+                  color: '#9ca3af',
+                  backgroundColor: 'rgba(156,163,175,0.1)',
+                  border: '1px solid #9ca3af',
+                }}
+              >
+                Discontinued
+              </span>
+            )}
+
+            {/* Handoff / Shared badges */}
+            {roleInJourney === 'handoff' && (
+              <span
+                className="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider"
+                style={{
+                  color: '#a16207',
+                  backgroundColor: 'rgba(234,179,8,0.15)',
+                  border: '1px solid #eab308',
+                }}
+              >
+                {task.handoff_label ?? 'Handoff'}
+              </span>
+            )}
+            {roleInJourney === 'shared' && (
+              <span
+                className="inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider"
+                style={{
+                  color: '#2563eb',
+                  backgroundColor: 'rgba(37,99,235,0.1)',
+                  border: '1px solid #2563eb',
+                }}
+              >
+                Shared
+              </span>
+            )}
           </div>
 
           <button
@@ -95,7 +189,13 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
         </div>
 
         {/* Title */}
-        <h4 className="text-sm font-medium text-eden-text leading-snug mb-2">
+        <h4
+          className={`text-sm font-medium leading-snug mb-2 ${
+            lifecycle === 'discontinued'
+              ? 'text-gray-400 line-through'
+              : 'text-eden-text'
+          }`}
+        >
           {task.title}
         </h4>
 
@@ -111,6 +211,23 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
           >
             {task.status}
           </span>
+
+          {/* Source badge */}
+          {task.source_type != null && (
+            <SourceBadge sourceType={task.source_type} />
+          )}
+
+          {/* Device badge */}
+          {task.device && (
+            <span
+              className={`inline-block px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
+                DEVICE_STYLES[task.device] ?? 'bg-gray-100 text-gray-500'
+              }`}
+            >
+              {task.device}
+            </span>
+          )}
+
           {openQuestions > 0 && (
             <button
               onClick={(e) => {
@@ -139,6 +256,29 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
         </div>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SourceBadge — small colored badge indicating data provenance
+// ---------------------------------------------------------------------------
+
+const DEFAULT_SOURCE_COLOR = { border: '#6b7280', bg: 'rgba(107,114,128,0.1)', text: '#6b7280' };
+
+function SourceBadge({ sourceType }: { sourceType: string }) {
+  const src = SOURCE_COLORS[sourceType] ?? DEFAULT_SOURCE_COLOR;
+  return (
+    <span
+      className="inline-block px-1.5 py-0.5 text-[8px] font-bold uppercase"
+      style={{
+        color: src.text,
+        backgroundColor: src.bg,
+        border: `1px solid ${src.border}`,
+        borderRadius: '3px',
+      }}
+    >
+      {sourceType}
+    </span>
   );
 }
 

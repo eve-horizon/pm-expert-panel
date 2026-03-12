@@ -15,6 +15,8 @@ export interface Question {
   question: string;
   status: string;
   priority: string;
+  is_cross_cutting?: boolean;
+  answer?: string | null;
 }
 
 export interface AcceptanceCriterion {
@@ -35,6 +37,12 @@ export interface Task {
   persona: Persona | null;
   role: string;
   questions: Question[];
+  lifecycle: string;
+  source_type: string | null;
+  source_excerpt: string | null;
+  source_id: string | null;
+  role_in_journey: string;
+  handoff_label: string | null;
 }
 
 export interface Step {

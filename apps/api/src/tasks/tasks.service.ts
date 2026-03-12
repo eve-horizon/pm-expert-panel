@@ -138,13 +138,17 @@ export class TasksService {
       priority?: string;
       status?: string;
       device?: string;
+      lifecycle?: string;
+      source_type?: string;
+      source_excerpt?: string;
     },
   ): Promise<TaskRow> {
     return this.db.withClient(ctx, async (client) => {
       const result = await client.query<TaskRow>(
         `INSERT INTO tasks (org_id, project_id, display_id, title, user_story,
-                            acceptance_criteria, priority, status, device)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                            acceptance_criteria, priority, status, device,
+                            lifecycle, source_type, source_excerpt)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            RETURNING *`,
         [
           ctx.org_id,
@@ -156,6 +160,9 @@ export class TasksService {
           data.priority ?? 'medium',
           data.status ?? 'draft',
           data.device ?? null,
+          data.lifecycle ?? 'active',
+          data.source_type ?? null,
+          data.source_excerpt ?? null,
         ],
       );
 
@@ -192,6 +199,9 @@ export class TasksService {
       'status',
       'device',
       'release_id',
+      'lifecycle',
+      'source_type',
+      'source_excerpt',
     ]);
 
     const setClauses: string[] = [];

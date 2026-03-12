@@ -56,6 +56,9 @@ export class TasksController {
       priority?: string;
       status?: string;
       device?: string;
+      lifecycle?: string;
+      source_type?: string;
+      source_excerpt?: string;
     },
   ) {
     return this.tasks.create(dbContext(req), projectId, body);

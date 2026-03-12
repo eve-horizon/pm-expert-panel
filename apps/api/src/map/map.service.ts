@@ -41,6 +41,8 @@ interface StepTaskJoinRow {
   st_persona_id: string;
   st_role: string;
   st_sort_order: number;
+  st_role_in_journey: string | null;
+  st_handoff_label: string | null;
   // tasks columns
   task_id: string;
   task_display_id: string;
@@ -51,6 +53,10 @@ interface StepTaskJoinRow {
   task_status: string;
   task_device: string | null;
   task_release_id: string | null;
+  task_lifecycle: string | null;
+  task_source_type: string | null;
+  task_source_excerpt: string | null;
+  task_source_id: string | null;
 }
 
 interface QuestionJoinRow {
@@ -93,8 +99,14 @@ interface MapTask {
   status: string;
   device: string | null;
   release_id: string | null;
+  lifecycle: string;
+  source_type: string | null;
+  source_excerpt: string | null;
+  source_id: string | null;
   persona: MapPersona | null;
   role: string;
+  role_in_journey: string;
+  handoff_label: string | null;
   questions: MapQuestion[];
 }
 
@@ -200,8 +212,14 @@ export class MapService {
           status: row.task_status,
           device: row.task_device,
           release_id: row.task_release_id,
+          lifecycle: row.task_lifecycle ?? 'active',
+          source_type: row.task_source_type,
+          source_excerpt: row.task_source_excerpt,
+          source_id: row.task_source_id,
           persona,
           role: row.st_role,
+          role_in_journey: row.st_role_in_journey ?? 'primary',
+          handoff_label: row.st_handoff_label,
           questions: questionsByTask.get(row.task_id) ?? [],
         };
 
@@ -359,6 +377,8 @@ export class MapService {
               st.persona_id   AS st_persona_id,
               st.role          AS st_role,
               st.sort_order    AS st_sort_order,
+              st.role_in_journey AS st_role_in_journey,
+              st.handoff_label   AS st_handoff_label,
               t.id             AS task_id,
               t.display_id     AS task_display_id,
               t.title          AS task_title,
@@ -367,7 +387,11 @@ export class MapService {
               t.priority       AS task_priority,
               t.status         AS task_status,
               t.device         AS task_device,
-              t.release_id     AS task_release_id
+              t.release_id     AS task_release_id,
+              t.lifecycle      AS task_lifecycle,
+              t.source_type    AS task_source_type,
+              t.source_excerpt AS task_source_excerpt,
+              t.source_id      AS task_source_id
          FROM step_tasks st
          JOIN tasks    t ON t.id = st.task_id
          JOIN personas p ON p.id = st.persona_id

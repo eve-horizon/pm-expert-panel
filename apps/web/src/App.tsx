@@ -8,6 +8,8 @@ import { QuestionsPage } from './pages/QuestionsPage';
 import { ReleasesPage } from './pages/ReleasesPage';
 import { ChangesetsPage } from './pages/ChangesetsPage';
 import { SourcesPage } from './pages/SourcesPage';
+import { ReviewsPage } from './pages/ReviewsPage';
+import { AuditPage } from './pages/AuditPage';
 import { useProject } from './hooks/useProjects';
 
 // ---------------------------------------------------------------------------
@@ -108,7 +110,9 @@ function AuthGate() {
                 <Route path="qa" element={<QuestionsPage />} />
                 <Route path="releases" element={<ReleasesPage />} />
                 <Route path="changes" element={<ChangesetsPage />} />
+                <Route path="reviews" element={<ReviewsPage />} />
                 <Route path="sources" element={<SourcesPage />} />
+                <Route path="audit" element={<AuditPage />} />
                 <Route path="*" element={<Navigate to="map" replace />} />
               </Routes>
             </ProjectShell>

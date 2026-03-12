@@ -4,16 +4,22 @@ import type { Step } from './types';
 // StepHeader — accent-colored column header for a step within an activity
 //
 // Sits at the top of each step column with the step's display_id, name,
-// and a task count badge. Uses the Eden accent orange for the top border.
+// and a task count badge. Uses the Eden accent orange for the top border
+// and an optional primary persona color for the left border.
 // ---------------------------------------------------------------------------
 
 interface StepHeaderProps {
   step: Step;
+  /** Color of the primary persona (first task's persona) — shown as a 4px left border. */
+  primaryPersonaColor?: string | null;
 }
 
-export function StepHeader({ step }: StepHeaderProps) {
+export function StepHeader({ step, primaryPersonaColor }: StepHeaderProps) {
   return (
-    <div className="bg-white border-t-2 border-eden-accent rounded-t-lg px-3 py-2.5 shadow-sm">
+    <div
+      className="bg-white border-t-2 border-eden-accent rounded-t-lg px-3 py-2.5 shadow-sm"
+      style={primaryPersonaColor ? { borderLeftWidth: '4px', borderLeftColor: primaryPersonaColor } : undefined}
+    >
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
           <span className="text-[10px] font-mono text-eden-accent font-semibold">

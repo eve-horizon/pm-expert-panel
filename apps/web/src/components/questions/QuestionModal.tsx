@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../api/client';
+import { AnswerProgress } from './AnswerProgress';
 
 // ---------------------------------------------------------------------------
 // QuestionModal — full-detail view for a single question
 //
 // Centered modal with backdrop blur. Shows question text, priority/category
 // badges, entity reference tags, and a textarea for answering. Autosaves
-// the answer with a 1-second debounce. "Evolve Map" button triggers the
-// AI evolution pipeline.
+// the answer via PATCH /api/questions/:id with a 1-second debounce. "Evolve
+// Map" button triggers the AI evolution pipeline. Header shows overall
+// project question progress.
 // ---------------------------------------------------------------------------
 
 interface QuestionRef {
@@ -20,12 +22,18 @@ interface QuestionRef {
 interface QuestionDetail {
   id: string;
   display_id: string;
+  project_id?: string;
   question: string;
   answer: string | null;
   status: string;
   priority: string;
   category: string | null;
   references: QuestionRef[];
+}
+
+interface ProjectQuestionStats {
+  total: number;
+  answered: number;
 }
 
 interface QuestionModalProps {
@@ -47,6 +55,10 @@ export function QuestionModal({
   );
   const [evolving, setEvolving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [questionStats, setQuestionStats] = useState<ProjectQuestionStats>({
+    total: 0,
+    answered: 0,
+  });
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
@@ -57,12 +69,22 @@ export function QuestionModal({
       .then((q) => {
         setDetail(q);
         setAnswer(q.answer ?? '');
+
+        // Fetch project-level question stats for the progress bar
+        if (q.project_id) {
+          api
+            .get<{ total: number; answered: number }>(
+              `/projects/${q.project_id}/questions/stats`,
+            )
+            .then(setQuestionStats)
+            .catch(() => {});
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [questionId]);
 
-  // Autosave with debounce
+  // Autosave with debounce — persists via PATCH /api/questions/:id
   const handleAnswerChange = useCallback(
     (value: string) => {
       setAnswer(value);
@@ -74,12 +96,24 @@ export function QuestionModal({
         try {
           await api.patch(`/questions/${questionId}`, { answer: value });
           setSaveStatus('saved');
+
+          // Update the local stats optimistically
+          setQuestionStats((prev) => {
+            const wasPreviouslyAnswered =
+              detail?.answer != null && detail.answer.trim() !== '';
+            const isNowAnswered = value.trim() !== '';
+            if (wasPreviouslyAnswered === isNowAnswered) return prev;
+            return {
+              ...prev,
+              answered: prev.answered + (isNowAnswered ? 1 : -1),
+            };
+          });
         } catch {
           setSaveStatus('idle');
         }
       }, 1000);
     },
-    [questionId],
+    [questionId, detail],
   );
 
   const handleEvolve = async () => {
@@ -193,6 +227,16 @@ export function QuestionModal({
                       {ref.display_id || ref.entity_type}
                     </button>
                   ))}
+                </div>
+              )}
+
+              {/* Answer progress bar */}
+              {questionStats.total > 0 && (
+                <div className="mt-3 pt-3 border-t border-eden-border/50">
+                  <AnswerProgress
+                    answered={questionStats.answered}
+                    total={questionStats.total}
+                  />
                 </div>
               )}
             </div>

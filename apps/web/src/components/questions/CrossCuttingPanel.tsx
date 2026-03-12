@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client';
+import { AnswerProgress } from './AnswerProgress';
 
 // ---------------------------------------------------------------------------
 // CrossCuttingPanel — slide-in panel showing open cross-cutting questions
 //
-// Red-themed, 480px wide, slides in from the right edge. Groups questions
+// Red-themed, 520px wide, slides in from the right edge. Groups questions
 // by category (conflicts, gaps, duplicates, assumptions) with a count badge
-// in the header.
+// in the header. Shows answer progress and supports cross-cutting filtering.
 // ---------------------------------------------------------------------------
 
 interface QuestionRef {
@@ -24,6 +25,7 @@ interface Question {
   status: string;
   priority: string;
   category: string | null;
+  is_cross_cutting?: boolean;
   references?: QuestionRef[];
 }
 
@@ -52,6 +54,7 @@ export function CrossCuttingPanel({
 }: CrossCuttingPanelProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
+  const [crossCuttingOnly, setCrossCuttingOnly] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -65,15 +68,23 @@ export function CrossCuttingPanel({
 
   if (!open) return null;
 
+  // Client-side cross-cutting filter
+  const filtered = crossCuttingOnly
+    ? questions.filter((q) => q.is_cross_cutting)
+    : questions;
+
+  // Progress stats
+  const answeredCount = questions.filter((q) => q.answer != null && q.answer.trim() !== '').length;
+
   // Group by category
   const grouped = CATEGORY_ORDER.reduce<Record<string, Question[]>>(
     (acc, cat) => {
-      acc[cat] = questions.filter((q) => q.category === cat);
+      acc[cat] = filtered.filter((q) => q.category === cat);
       return acc;
     },
     {},
   );
-  const uncategorized = questions.filter(
+  const uncategorized = filtered.filter(
     (q) => !q.category || !CATEGORY_ORDER.includes(q.category),
   );
 
@@ -87,7 +98,7 @@ export function CrossCuttingPanel({
 
       {/* Panel */}
       <div
-        className="w-[480px] h-full bg-eden-surface border-l shadow-2xl flex flex-col"
+        className="w-[520px] h-full bg-eden-surface border-l shadow-2xl flex flex-col"
         style={{ borderLeftWidth: '3px', borderLeftColor: '#ef4444' }}
       >
         {/* Header */}
@@ -100,7 +111,7 @@ export function CrossCuttingPanel({
               Cross-Cutting Questions
             </h2>
             <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold">
-              {questions.length}
+              {filtered.length}
             </span>
           </div>
           <button
@@ -109,6 +120,25 @@ export function CrossCuttingPanel({
           >
             <CloseIcon className="w-4 h-4" />
           </button>
+        </div>
+
+        {/* Progress + filter bar */}
+        <div className="px-5 py-3 border-b border-eden-border space-y-2.5">
+          <AnswerProgress answered={answeredCount} total={questions.length} />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCrossCuttingOnly(!crossCuttingOnly)}
+              className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-150
+                ${
+                  crossCuttingOnly
+                    ? 'bg-red-600 text-white'
+                    : 'bg-white text-red-600 border border-red-300 hover:bg-red-50'
+                }`}
+            >
+              <CrossCuttingIcon className="w-3 h-3 mr-1" />
+              Cross-cutting only
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -122,10 +152,12 @@ export function CrossCuttingPanel({
                 />
               ))}
             </div>
-          ) : questions.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <p className="text-sm text-eden-text-2">
-                No open cross-cutting questions
+                {crossCuttingOnly
+                  ? 'No cross-cutting questions found'
+                  : 'No open cross-cutting questions'}
               </p>
             </div>
           ) : (
@@ -178,6 +210,7 @@ export function CrossCuttingPanel({
 
 // ---------------------------------------------------------------------------
 // CrossCuttingCard — red-themed card for a single question
+// Answered questions get a green left border and checkmark indicator.
 // ---------------------------------------------------------------------------
 
 function CrossCuttingCard({
@@ -189,6 +222,8 @@ function CrossCuttingCard({
   onClick: () => void;
   onReferenceClick?: (displayId: string) => void;
 }) {
+  const isAnswered = question.answer != null && question.answer.trim() !== '';
+
   const priorityColor =
     question.priority === 'high'
       ? 'bg-red-100 text-red-700'
@@ -199,13 +234,21 @@ function CrossCuttingCard({
   return (
     <div
       className="rounded-lg border border-red-200 bg-red-50/30 hover:bg-red-50/60 transition-colors cursor-pointer"
+      style={
+        isAnswered
+          ? { borderLeftWidth: '3px', borderLeftColor: '#10b981' }
+          : undefined
+      }
       onClick={onClick}
     >
       <div className="px-4 py-3">
         <div className="flex items-start justify-between gap-2 mb-1">
-          <span className="text-[10px] font-mono text-red-400">
-            {question.display_id}
-          </span>
+          <div className="flex items-center gap-1.5">
+            {isAnswered && <CheckIcon className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />}
+            <span className="text-[10px] font-mono text-red-400">
+              {question.display_id}
+            </span>
+          </div>
           <span
             className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold capitalize ${priorityColor}`}
           >
@@ -262,6 +305,39 @@ function CloseIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 20 20" fill="currentColor">
       <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 20 20"
+      fill="currentColor"
+    >
+      <path
+        fillRule="evenodd"
+        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+function CrossCuttingIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 6L6 18" />
+      <path d="M6 6l12 12" />
     </svg>
   );
 }

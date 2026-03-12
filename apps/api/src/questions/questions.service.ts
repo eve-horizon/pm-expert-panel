@@ -46,6 +46,7 @@ export interface CreateQuestionInput {
   question: string;
   priority?: string;
   category?: string;
+  is_cross_cutting?: boolean;
   references?: { entity_type: string; entity_id: string }[];
 }
 
@@ -156,8 +157,8 @@ export class QuestionsService {
 
       // Insert question
       const { rows } = await client.query<Question>(
-        `INSERT INTO questions (org_id, project_id, display_id, question, priority, category)
-              VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO questions (org_id, project_id, display_id, question, priority, category, is_cross_cutting)
+              VALUES ($1, $2, $3, $4, $5, $6, $7)
            RETURNING *`,
         [
           ctx.org_id,
@@ -166,6 +167,7 @@ export class QuestionsService {
           input.question,
           input.priority ?? 'medium',
           input.category ?? null,
+          input.is_cross_cutting ?? false,
         ],
       );
       const question = rows[0];
