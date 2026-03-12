@@ -5,3 +5,5 @@
 .agents/
 .claude/
 .pi/
+
+*.env

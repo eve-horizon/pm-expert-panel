@@ -1,0 +1,3995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chivo 2.0 — User Story Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  :root {
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --border: #e2e5e9;
+    --text: #1a1a2e;
+    --text-2: #6b7280;
+    --accent: #e65100;
+    --accent-light: #fff3e0;
+    --accent-dark: #bf360c;
+    --activity-bg: #1a1a2e;
+    --step-bg: #e65100;
+    --q-bg: #fffbeb;
+    --q-border: #f59e0b;
+    --q-text: #92400e;
+    --cq-bg: #fef2f2;
+    --cq-border: #ef4444;
+    --cq-text: #991b1b;
+    --green: #10b981;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,.1);
+    --shadow-lg: 0 12px 36px rgba(0,0,0,.12);
+    --col-w: 320px;
+    /* Persona colors */
+    --md-color: #6366f1;
+    --est-color: #0891b2;
+    --pm-color: #059669;
+    --ps-color: #d97706;
+    --md-bg: #eef2ff;
+    --est-bg: #ecfeff;
+    --pm-bg: #ecfdf5;
+    --ps-bg: #fffbeb;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    color: #fff;
+    padding: 24px 32px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0,0,0,.25);
+  }
+  .hdr-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .hdr-title { font-size: 24px; font-weight: 800; letter-spacing: -.5px; }
+  .hdr-title em { font-style: normal; color: #ff8a65; }
+  .hdr-sub { font-size: 12px; color: rgba(255,255,255,.5); margin-top: 2px; }
+  .hdr-stats { display: flex; gap: 24px; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-n { font-size: 22px; font-weight: 800; }
+  .stat-l { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: rgba(255,255,255,.4); }
+  .hdr-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .hdr-btns button {
+    padding: 7px 14px;
+    border: 1px solid rgba(255,255,255,.2);
+    background: rgba(255,255,255,.07);
+    color: #fff;
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+  }
+  .hdr-btns button:hover { background: rgba(255,255,255,.15); border-color: rgba(255,255,255,.35); }
+  .hdr-btns button.on { background: var(--accent); border-color: var(--accent); }
+
+  /* ANSWER PROGRESS */
+  .answer-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,.7);
+  }
+  .progress-bar-wrap {
+    width: 80px;
+    height: 6px;
+    background: rgba(255,255,255,.15);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 3px;
+    transition: width .3s;
+  }
+
+  /* MAP TABS */
+  .map-tabs {
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    gap: 0;
+    position: sticky;
+    top: 76px;
+    z-index: 99;
+  }
+  .map-tab {
+    padding: 10px 20px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text-2);
+    border-bottom: 3px solid transparent;
+    transition: all .15s;
+    font-family: inherit;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .map-tab:hover { color: var(--text); background: rgba(0,0,0,.03); }
+  .map-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .map-tab.active[data-map="MD"] { border-bottom-color: var(--md-color); }
+  .map-tab.active[data-map="EST"] { border-bottom-color: var(--est-color); }
+  .map-tab.active[data-map="PM"] { border-bottom-color: var(--pm-color); }
+  .map-tab.active[data-map="PS"] { border-bottom-color: var(--ps-color); }
+  .map-tab .tab-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .map-tab .tab-count {
+    font-size: 9px;
+    font-weight: 800;
+    background: rgba(0,0,0,.08);
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+
+  /* ROLE FILTER BUTTONS */
+  .role-filters { display: flex; gap: 6px; margin-left: 12px; }
+  .role-filter-btn {
+    padding: 5px 12px;
+    border: 2px solid;
+    background: transparent;
+    color: #fff;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .15s;
+    font-family: inherit;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .role-filter-btn:hover { opacity: .9; transform: translateY(-1px); }
+  .role-filter-btn.active { color: #fff !important; }
+  .role-filter-btn[data-role="MD"]  { border-color: var(--md-color); color: var(--md-color); }
+  .role-filter-btn[data-role="MD"].active  { background: var(--md-color); }
+  .role-filter-btn[data-role="EST"] { border-color: var(--est-color); color: var(--est-color); }
+  .role-filter-btn[data-role="EST"].active { background: var(--est-color); }
+  .role-filter-btn[data-role="PM"]  { border-color: var(--pm-color); color: var(--pm-color); }
+  .role-filter-btn[data-role="PM"].active  { background: var(--pm-color); }
+  .role-filter-btn[data-role="PS"]  { border-color: var(--ps-color); color: var(--ps-color); }
+  .role-filter-btn[data-role="PS"].active  { background: var(--ps-color); }
+
+  /* LEGEND */
+  .legend {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 32px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-2);
+    position: sticky;
+    top: 118px;
+    z-index: 98;
+    flex-wrap: wrap;
+  }
+  .leg-item { display: flex; align-items: center; gap: 5px; }
+  .leg-sw { width: 20px; height: 11px; border-radius: 3px; border: 1px solid rgba(0,0,0,.06); }
+  .leg-sep { width: 1px; height: 16px; background: var(--border); }
+  .leg-persona { display: flex; align-items: center; gap: 4px; font-weight: 600; }
+  .leg-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .leg-handoff { display: none; }
+  .show-handoff .leg-handoff { display: flex; }
+
+  /* MAP CONTAINER */
+  .map-wrap { padding: 24px 32px 120px; overflow-x: auto; }
+
+  /* GRID-BASED STORY MAP */
+  .story-grid {
+    display: grid;
+    gap: 0;
+    min-width: fit-content;
+  }
+
+  /* ACTIVITY ROW */
+  .act-cell {
+    background: var(--activity-bg);
+    color: #fff;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -.2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-right: 2px solid rgba(255,255,255,.1);
+    gap: 8px;
+  }
+  .act-cell:last-of-type { border-right: none; }
+  .act-cell .id-tag { font-size: 9px; font-weight: 500; opacity: .4; margin-right: 6px; }
+  .act-q-badge {
+    background: #f59e0b;
+    color: #1a1a2e;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Activity persona pills */
+  .act-personas { display: flex; gap: 3px; flex-shrink: 0; }
+  .act-role-pill {
+    font-size: 8px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 10px;
+    color: #fff;
+    letter-spacing: .3px;
+  }
+  .act-role-pill.MD  { background: var(--md-color); }
+  .act-role-pill.EST { background: var(--est-color); }
+  .act-role-pill.PM  { background: var(--pm-color); }
+  .act-role-pill.PS  { background: var(--ps-color); }
+
+  /* STEP ROW */
+  .stp-cell {
+    background: var(--step-bg);
+    color: #fff;
+    padding: 9px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    border-right: 1px solid rgba(255,255,255,.15);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-left: 4px solid transparent;
+  }
+  .stp-cell .id-tag { font-size: 8px; font-weight: 500; opacity: .5; margin-right: 5px; }
+  /* Step persona borders */
+  .stp-cell.persona-MD  { border-left-color: var(--md-color); }
+  .stp-cell.persona-EST { border-left-color: var(--est-color); }
+  .stp-cell.persona-PM  { border-left-color: var(--pm-color); }
+  .stp-cell.persona-PS  { border-left-color: var(--ps-color); }
+
+  /* TASK CELLS */
+  .task-cell {
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-right: 1px dashed #d1d5db;
+    vertical-align: top;
+    background: var(--bg);
+    min-height: 120px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: all .2s;
+    cursor: pointer;
+  }
+  .card:hover { box-shadow: var(--shadow-md); border-color: var(--accent); }
+  .card.open { box-shadow: var(--shadow-md); border-color: var(--accent); }
+  .card.role-dimmed { opacity: .15; transform: scale(.97); pointer-events: none; }
+
+  /* HANDOFF CARD */
+  .card.card-handoff {
+    border: 2px dashed #d1d5db;
+    background: #fafafa;
+    opacity: .85;
+  }
+  .card.card-handoff:hover { border-color: #f59e0b; opacity: 1; }
+  .card.card-handoff.open { border-color: #f59e0b; opacity: 1; }
+
+  /* HANDOFF BADGE */
+  .handoff-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 7px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #fef3c7;
+    color: #92400e;
+    letter-spacing: .3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .handoff-badge .handoff-arrow { font-size: 9px; }
+  .handoff-badge .handoff-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .card-top {
+    padding: 10px 12px;
+  }
+  .card-badges {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .card-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .card-id {
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-light);
+    padding: 2px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Role badges */
+  .role-badge {
+    font-size: 7px;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 4px;
+    color: #fff;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: .3px;
+  }
+  .role-badge.MD  { background: var(--md-color); }
+  .role-badge.EST { background: var(--est-color); }
+  .role-badge.PM  { background: var(--pm-color); }
+  .role-badge.PS  { background: var(--ps-color); }
+
+  /* Device badge */
+  .device-badge {
+    font-size: 7px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: .3px;
+  }
+  .device-badge.desktop { background: #f3f4f6; color: #374151; }
+  .device-badge.mobile  { background: #fef3c7; color: #92400e; }
+  .device-badge.all     { background: #e0e7ff; color: #3730a3; }
+
+  .card-title { font-size: 12px; font-weight: 600; flex: 1; line-height: 1.4; min-width: 0; }
+  .card-chevron { font-size: 12px; color: var(--text-2); transition: transform .15s; flex-shrink: 0; margin-top: 2px; }
+  .card.open .card-chevron { transform: rotate(180deg); }
+
+  .card-body { display: none; padding: 0 12px 12px; font-size: 10px; }
+  .card.open .card-body { display: block; }
+
+  /* Compact card styling is removed — all cards are expandable */
+
+  /* USER STORY */
+  .us {
+    background: #f8fafc;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+  }
+  .us-lbl { font-size: 8px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+  .us-txt { font-size: 10px; color: var(--text); font-style: italic; line-height: 1.6; }
+
+  /* ACCEPTANCE CRITERIA */
+  .ac-list { margin-top: 6px; list-style: none; }
+  .ac-item {
+    display: flex;
+    gap: 5px;
+    align-items: flex-start;
+    margin-bottom: 4px;
+    font-size: 9px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+  .ac-chk { color: var(--green); font-weight: 800; flex-shrink: 0; }
+  .ac-id { font-size: 7px; font-weight: 700; color: var(--accent); flex-shrink: 0; margin-top: 1px; }
+
+  /* QUESTIONS in tasks */
+  .q-sec { margin-top: 8px; border-top: 1px solid #eee; padding-top: 6px; }
+  .q-sec-lbl { font-size: 8px; font-weight: 800; color: var(--q-text); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .q-pill {
+    background: var(--q-bg);
+    border: 1px solid var(--q-border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    margin-bottom: 4px;
+    font-size: 9px;
+    line-height: 1.5;
+    color: var(--q-text);
+    display: flex;
+    gap: 5px;
+    align-items: flex-start;
+    cursor: pointer;
+    transition: all .12s;
+  }
+  .q-pill:hover { box-shadow: 0 2px 8px rgba(245,158,11,.2); transform: translateY(-1px); }
+  .q-pill .qid { font-size: 7px; font-weight: 800; flex-shrink: 0; margin-top: 1px; }
+  .q-pill .q-pri {
+    font-size: 7px; font-weight: 700; padding: 1px 4px; border-radius: 3px; flex-shrink: 0; margin-top: 1px;
+  }
+  .q-pri.high { background: #fee2e2; color: #dc2626; }
+  .q-pri.medium { background: #fef3c7; color: #d97706; }
+  .q-pri.low { background: #d1fae5; color: #059669; }
+
+  /* Answered question indicator */
+  .q-pill.answered {
+    border-color: var(--green);
+    background: #ecfdf5;
+  }
+  .q-pill.answered .q-answered-check {
+    color: var(--green);
+    font-weight: 800;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+
+  /* CROSS-CUTTING PANEL */
+  .panel {
+    position: fixed;
+    right: -520px;
+    top: 0;
+    width: 520px;
+    height: 100vh;
+    background: var(--surface);
+    box-shadow: -8px 0 30px rgba(0,0,0,.12);
+    z-index: 200;
+    transition: right .25s cubic-bezier(.4,0,.2,1);
+    display: flex;
+    flex-direction: column;
+  }
+  .panel.open { right: 0; }
+  .panel-hdr {
+    padding: 20px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .panel-hdr h2 { font-size: 16px; font-weight: 800; }
+  .panel-close {
+    width: 28px; height: 28px; border: none; background: #f3f4f6; border-radius: 50%;
+    cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
+    font-family: inherit;
+  }
+  .panel-close:hover { background: #e5e7eb; }
+  .panel-body { padding: 16px 22px; overflow-y: auto; flex: 1; }
+
+  .cq-card {
+    background: var(--cq-bg);
+    border: 1px solid var(--cq-border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all .12s;
+  }
+  .cq-card:hover { box-shadow: 0 3px 10px rgba(239,68,68,.12); transform: translateY(-1px); }
+  .cq-id { font-size: 9px; font-weight: 800; color: var(--cq-text); }
+  .cq-txt { font-size: 11px; line-height: 1.6; color: var(--text); margin-top: 4px; }
+  .cq-tags { margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap; }
+  .cq-tag {
+    font-size: 8px; font-weight: 700; background: rgba(239,68,68,.08); color: #dc2626;
+    padding: 2px 6px; border-radius: 4px; cursor: pointer;
+  }
+  .cq-tag:hover { background: rgba(239,68,68,.18); }
+  .cq-pri { font-size: 8px; font-weight: 700; padding: 2px 5px; border-radius: 3px; }
+  .cq-cat { font-size: 8px; font-weight: 600; color: var(--text-2); background: #f3f4f6; padding: 2px 5px; border-radius: 3px; }
+
+  /* MODAL */
+  .modal-bg {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,.35); z-index: 300; display: none;
+    align-items: center; justify-content: center; backdrop-filter: blur(3px);
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 14px; width: 560px; max-height: 80vh;
+    overflow-y: auto; box-shadow: var(--shadow-lg); padding: 24px;
+  }
+  .modal h3 { font-size: 15px; font-weight: 800; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .modal .m-txt { font-size: 13px; line-height: 1.7; color: var(--text); margin-bottom: 14px; }
+  .modal .m-meta { font-size: 11px; color: var(--text-2); margin-bottom: 10px; }
+  .modal .m-meta strong { color: var(--text); }
+  .modal .m-refs { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .modal .m-ref-link {
+    color: var(--accent); text-decoration: underline; cursor: pointer; font-size: 12px; font-weight: 600;
+  }
+  .modal .m-ref-link:hover { color: var(--accent-dark); }
+
+  /* RESPONSE SECTION in modal */
+  .response-section {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .response-section label {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .response-section .response-status {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .response-status.saved { background: #d1fae5; color: #059669; }
+  .response-status.saving { background: #fef3c7; color: #d97706; }
+  .response-section textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.6;
+    resize: vertical;
+    color: var(--text);
+    transition: border-color .15s;
+  }
+  .response-section textarea:focus { outline: none; border-color: var(--accent); }
+  .response-section .response-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .response-section .response-time {
+    font-size: 9px;
+    color: var(--text-2);
+  }
+
+  .modal .m-close {
+    margin-top: 14px; padding: 8px 20px; border: none; background: var(--accent);
+    color: #fff; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: background .15s;
+  }
+  .modal .m-close:hover { background: var(--accent-dark); }
+
+  /* HIGHLIGHT */
+  .flash { animation: flashAnim 2s ease; }
+  @keyframes flashAnim {
+    0% { box-shadow: 0 0 0 4px rgba(230,81,0,.5); }
+    100% { box-shadow: var(--shadow); }
+  }
+
+  .hide { display: none !important; }
+
+  /* PRINT */
+  @media print {
+    body { background: #fff; font-size: 9px; }
+    header { position: static; -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 16px; }
+    .map-tabs { position: static; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .legend { position: static; }
+    .map-wrap { padding: 12px; overflow: visible; }
+    .story-grid { min-width: unset !important; }
+    .act-cell { position: static; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .stp-cell { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .card-body { display: block !important; }
+    .card-chevron { display: none; }
+    .panel { display: none; }
+    .modal-bg { display: none; }
+    .hdr-btns { display: none; }
+    .role-filters { display: none; }
+    .card { break-inside: avoid; page-break-inside: avoid; }
+    .task-cell { break-inside: avoid; }
+    .us { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .q-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .role-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .act-role-pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .device-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .handoff-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .card-handoff { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #999; }
+
+  /* ===== SETTINGS MODAL ===== */
+  .settings-bg {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,.35); z-index: 400; display: none;
+    align-items: center; justify-content: center; backdrop-filter: blur(3px);
+  }
+  .settings-bg.open { display: flex; }
+  .settings-modal {
+    background: #fff; border-radius: 14px; width: 440px; max-height: 80vh;
+    overflow-y: auto; box-shadow: var(--shadow-lg); padding: 28px;
+  }
+  .settings-modal h3 { font-size: 16px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .settings-field { margin-bottom: 16px; }
+  .settings-field label {
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--text-2); display: block; margin-bottom: 6px;
+  }
+  .settings-field .api-key-row {
+    display: flex; gap: 6px;
+  }
+  .settings-field input[type="password"],
+  .settings-field input[type="text"] {
+    flex: 1; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+    font-family: inherit; font-size: 12px; color: var(--text); transition: border-color .15s;
+  }
+  .settings-field input:focus { outline: none; border-color: var(--accent); }
+  .settings-field select {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+    font-family: inherit; font-size: 12px; color: var(--text); background: #fff; cursor: pointer;
+  }
+  .settings-field select:focus { outline: none; border-color: var(--accent); }
+  .settings-vis-btn {
+    padding: 8px 12px; border: 1px solid var(--border); background: #f9fafb; border-radius: 8px;
+    font-size: 12px; cursor: pointer; font-family: inherit; white-space: nowrap;
+  }
+  .settings-vis-btn:hover { background: #f3f4f6; }
+  .settings-note {
+    font-size: 10px; color: var(--text-2); line-height: 1.6; margin-top: 12px;
+    padding: 10px 12px; background: #f8fafc; border-radius: 8px; border: 1px solid var(--border);
+  }
+  .settings-btns { display: flex; gap: 8px; margin-top: 20px; }
+  .settings-btns button {
+    padding: 9px 20px; border: none; border-radius: 7px; font-size: 12px;
+    font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s;
+  }
+  .settings-save { background: var(--accent); color: #fff; }
+  .settings-save:hover { background: var(--accent-dark); }
+  .settings-cancel { background: #f3f4f6; color: var(--text); }
+  .settings-cancel:hover { background: #e5e7eb; }
+
+  /* ===== EVOLVED INDICATOR ===== */
+  .evolved-badge {
+    display: none; align-items: center; gap: 6px;
+    background: rgba(16,185,129,.15); color: #10b981;
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 10px; font-weight: 800; letter-spacing: .5px;
+    cursor: pointer; transition: all .15s; text-transform: uppercase;
+  }
+  .evolved-badge.show { display: inline-flex; }
+  .evolved-badge:hover { background: rgba(16,185,129,.25); }
+  .evolved-badge .evolved-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #10b981;
+  }
+
+  /* Card evolution indicators */
+  .card.ai-modified { border-left: 3px solid #8b5cf6; }
+  .card.ai-added { border-left: 3px solid #10b981; }
+
+  /* ===== REVIEW PANEL ===== */
+  .review-bg {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,.4); z-index: 500; display: none;
+    align-items: center; justify-content: center; backdrop-filter: blur(3px);
+  }
+  .review-bg.open { display: flex; }
+  .review-panel {
+    background: #fff; border-radius: 14px; width: 680px; max-height: 85vh;
+    display: flex; flex-direction: column; box-shadow: var(--shadow-lg);
+  }
+  .review-hdr {
+    padding: 20px 24px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .review-hdr h3 { font-size: 16px; font-weight: 800; }
+  .review-summary {
+    padding: 12px 24px; background: #f8fafc; border-bottom: 1px solid var(--border);
+    font-size: 12px; line-height: 1.6; color: var(--text);
+  }
+  .review-actions {
+    padding: 10px 24px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .review-actions .review-bulk { display: flex; gap: 8px; }
+  .review-actions button {
+    padding: 6px 14px; border: 1px solid var(--border); background: #fff;
+    border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: all .15s;
+  }
+  .review-actions button:hover { background: #f3f4f6; }
+  .review-count { font-size: 11px; color: var(--text-2); font-weight: 600; }
+  .review-cards {
+    flex: 1; overflow-y: auto; padding: 16px 24px;
+  }
+  .review-card {
+    border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px;
+    overflow: hidden; transition: all .15s;
+  }
+  .review-card.accepted { border-color: #10b981; background: #f0fdf4; }
+  .review-card.rejected { border-color: #ef4444; background: #fef2f2; opacity: .6; }
+  .review-card-hdr {
+    padding: 12px 14px; display: flex; align-items: center; gap: 10px;
+    cursor: pointer; user-select: none;
+  }
+  .review-card-hdr:hover { background: rgba(0,0,0,.02); }
+  .review-type-icon {
+    width: 28px; height: 28px; border-radius: 6px; display: flex;
+    align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0;
+  }
+  .review-type-icon.modify { background: #dbeafe; color: #2563eb; }
+  .review-type-icon.add { background: #d1fae5; color: #059669; }
+  .review-type-icon.resolve { background: #fef3c7; color: #d97706; }
+  .review-card-info { flex: 1; min-width: 0; }
+  .review-card-type { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; color: var(--text-2); }
+  .review-card-desc { font-size: 12px; font-weight: 600; color: var(--text); margin-top: 2px; }
+  .review-card-btns { display: flex; gap: 4px; flex-shrink: 0; }
+  .review-card-btns button {
+    width: 30px; height: 30px; border: 1px solid var(--border); background: #fff;
+    border-radius: 6px; cursor: pointer; font-size: 14px; display: flex;
+    align-items: center; justify-content: center; transition: all .12s;
+  }
+  .review-card-btns .btn-accept:hover { background: #d1fae5; border-color: #10b981; }
+  .review-card-btns .btn-reject:hover { background: #fee2e2; border-color: #ef4444; }
+  .review-card-btns .btn-accept.active { background: #10b981; color: #fff; border-color: #10b981; }
+  .review-card-btns .btn-reject.active { background: #ef4444; color: #fff; border-color: #ef4444; }
+  .review-card-body {
+    display: none; padding: 0 14px 14px; font-size: 11px;
+  }
+  .review-card.expanded .review-card-body { display: block; }
+  .review-diff {
+    background: #f8fafc; border-radius: 8px; padding: 10px 12px;
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 10px; line-height: 1.7;
+    overflow-x: auto;
+  }
+  .diff-del { color: #dc2626; text-decoration: line-through; }
+  .diff-add { color: #059669; font-weight: 600; }
+  .diff-label { font-size: 9px; font-weight: 700; color: var(--text-2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+  .review-footer {
+    padding: 14px 24px; border-top: 1px solid var(--border);
+    display: flex; gap: 8px; justify-content: flex-end;
+  }
+  .review-footer button {
+    padding: 9px 22px; border: none; border-radius: 7px; font-size: 12px;
+    font-weight: 700; cursor: pointer; font-family: inherit; transition: all .15s;
+  }
+  .review-apply { background: var(--accent); color: #fff; }
+  .review-apply:hover { background: var(--accent-dark); }
+  .review-discard { background: #f3f4f6; color: var(--text); }
+  .review-discard:hover { background: #e5e7eb; }
+
+  /* ===== CHAT PANEL ===== */
+  .chat-panel {
+    position: fixed; right: -560px; top: 0; width: 560px; height: 100vh;
+    background: var(--surface); box-shadow: -8px 0 30px rgba(0,0,0,.15);
+    z-index: 250; transition: right .25s cubic-bezier(.4,0,.2,1);
+    display: flex; flex-direction: column;
+  }
+  .chat-panel.open { right: 0; }
+  .chat-hdr {
+    padding: 18px 22px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .chat-hdr h3 { font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  .chat-hdr-btns { display: flex; gap: 6px; }
+  .chat-hdr-btns button {
+    padding: 6px 12px; border: 1px solid var(--border); background: #fff;
+    border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: all .12s;
+  }
+  .chat-hdr-btns button:hover { background: #f3f4f6; }
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 16px 22px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .chat-empty {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    color: var(--text-2); font-size: 12px; text-align: center;
+    flex-direction: column; gap: 8px;
+  }
+  .chat-empty-icon { font-size: 28px; opacity: .3; }
+  .chat-msg {
+    max-width: 85%; padding: 10px 14px; border-radius: 12px;
+    font-size: 12px; line-height: 1.6; word-break: break-word;
+  }
+  .chat-msg.user {
+    align-self: flex-end; background: var(--accent); color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .chat-msg.ai {
+    align-self: flex-start; background: #f3f4f6; color: var(--text);
+    border-bottom-left-radius: 4px;
+  }
+  .chat-msg .chat-review-btn {
+    display: inline-block; margin-top: 8px; padding: 6px 14px;
+    background: var(--accent); color: #fff; border: none; border-radius: 6px;
+    font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
+    transition: background .15s;
+  }
+  .chat-msg .chat-review-btn:hover { background: var(--accent-dark); }
+  .chat-typing {
+    align-self: flex-start; padding: 10px 14px;
+    background: #f3f4f6; border-radius: 12px; border-bottom-left-radius: 4px;
+    font-size: 12px; color: var(--text-2);
+  }
+  .chat-typing .dot { display: inline-block; animation: chatDot 1.4s infinite; }
+  .chat-typing .dot:nth-child(2) { animation-delay: .2s; }
+  .chat-typing .dot:nth-child(3) { animation-delay: .4s; }
+  @keyframes chatDot { 0%,60%,100%{opacity:.3} 30%{opacity:1} }
+  .chat-input-area {
+    padding: 14px 22px; border-top: 1px solid var(--border);
+    display: flex; gap: 8px; align-items: flex-end;
+  }
+  .chat-input-area textarea {
+    flex: 1; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+    font-family: inherit; font-size: 12px; line-height: 1.5; resize: none;
+    min-height: 40px; max-height: 120px; color: var(--text);
+  }
+  .chat-input-area textarea:focus { outline: none; border-color: var(--accent); }
+  .chat-send-btn {
+    padding: 10px 18px; border: none; background: var(--accent); color: #fff;
+    border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: all .15s; white-space: nowrap;
+  }
+  .chat-send-btn:hover { background: var(--accent-dark); }
+  .chat-send-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ===== EVOLVE BUTTON IN MODAL ===== */
+  .modal-btn-row {
+    display: flex; gap: 8px; margin-top: 14px; align-items: center;
+  }
+  .modal-btn-row .evolve-btn {
+    padding: 8px 20px; border: none; background: #8b5cf6; color: #fff;
+    border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: all .15s; display: flex; align-items: center; gap: 6px;
+  }
+  .modal-btn-row .evolve-btn:hover { background: #7c3aed; }
+  .modal-btn-row .evolve-btn.not-ready { opacity: .5; }
+  .modal-btn-row .evolve-btn.not-ready:hover { background: #8b5cf6; }
+  .modal-btn-row .evolve-btn .spinner {
+    display: none; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite;
+  }
+  .modal-btn-row .evolve-btn.loading .spinner { display: inline-block; }
+  .modal-btn-row .evolve-btn.loading .evolve-label { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .evolve-cost {
+    font-size: 9px; color: var(--text-2); margin-left: 4px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-row">
+    <div>
+      <div class="hdr-title"><em>Chivo 2.0</em> — User Story Map</div>
+      <div class="hdr-sub" id="hdrSub">Payments Application &middot; Activities &rarr; Steps &rarr; Tasks</div>
+      <span class="evolved-badge" id="evolvedBadge" onclick="promptReset()" title="Map has been evolved by AI. Click to reset."><span class="evolved-dot"></span>EVOLVED</span>
+    </div>
+    <div class="hdr-stats" id="stats"></div>
+    <div class="hdr-btns">
+      <button id="btnExpand" onclick="toggleExpand()">Expand All</button>
+      <button id="btnQFilter" onclick="toggleQFilter()">Questions Only</button>
+      <button id="btnPanel" onclick="togglePanel()">Cross-Cutting Qs</button>
+      <button onclick="window.print()">Print</button>
+      <button id="btnExportJSON" onclick="exportResponses()">Export JSON</button>
+      <button id="btnExportMD" onclick="exportResponsesMarkdown()">Export MD</button>
+      <button id="btnChat" onclick="toggleChat()">&#128172; Chat</button>
+      <button id="btnSettings" onclick="openSettings()">&#9881; Settings</button>
+      <div class="role-filters" id="roleFilters" style="display:none"></div>
+    </div>
+  </div>
+</header>
+
+<nav class="map-tabs" id="mapTabs"></nav>
+
+<div class="legend" id="legend"></div>
+
+<div class="map-wrap">
+  <div id="map"></div>
+</div>
+
+<!-- Cross-cutting panel -->
+<div class="panel" id="panel">
+  <div class="panel-hdr">
+    <h2>Cross-Cutting Questions</h2>
+    <button class="panel-close" onclick="togglePanel()">&times;</button>
+  </div>
+  <div class="panel-body" id="panelBody"></div>
+</div>
+
+<!-- Question modal -->
+<div class="modal-bg" id="modalBg" onclick="closeModal(event)">
+  <div class="modal">
+    <h3 id="mTitle"></h3>
+    <div class="m-txt" id="mTxt"></div>
+    <div class="m-meta" id="mMeta"></div>
+    <div class="m-refs" id="mRefs"></div>
+    <div class="response-section" id="responseSection">
+      <label>Your Response <span class="response-status" id="responseStatus"></span></label>
+      <textarea id="responseText" placeholder="Type your answer here..." oninput="debounceSaveResponse()" onblur="saveCurrentResponse()"></textarea>
+      <div class="response-actions">
+        <span class="response-time" id="responseTime"></span>
+      </div>
+    </div>
+    <div class="modal-btn-row">
+      <button class="evolve-btn" id="evolveBtn" onclick="evolveMap()">
+        <span class="evolve-label">&#9889; Evolve Map</span>
+        <span class="spinner"></span>
+      </button>
+      <button class="m-close" onclick="closeModal()">Close</button>
+      <span class="evolve-cost" id="evolveCost"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="settings-bg" id="settingsBg" onclick="closeSettings(event)">
+  <div class="settings-modal">
+    <h3>&#9881; AI Settings</h3>
+    <div class="settings-field">
+      <label>Anthropic API Key</label>
+      <div class="api-key-row">
+        <input type="password" id="settingsApiKey" placeholder="sk-ant-..." autocomplete="off">
+        <button class="settings-vis-btn" id="settingsVisBtn" onclick="toggleApiKeyVis()">Show</button>
+      </div>
+    </div>
+    <div class="settings-field">
+      <label>Model</label>
+      <select id="settingsModel">
+        <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5</option>
+        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (faster, cheaper)</option>
+      </select>
+    </div>
+    <div class="settings-note">
+      &#128274; Your API key is stored locally in your browser and is only sent directly to Anthropic's API. It never touches any other server.
+    </div>
+    <div class="settings-btns">
+      <button class="settings-save" onclick="saveSettings()">Save</button>
+      <button class="settings-cancel" onclick="closeSettings()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Review panel -->
+<div class="review-bg" id="reviewBg">
+  <div class="review-panel">
+    <div class="review-hdr">
+      <h3 id="reviewTitle">Review AI Changes</h3>
+      <button class="panel-close" onclick="closeReview()">&times;</button>
+    </div>
+    <div class="review-summary" id="reviewSummary"></div>
+    <div class="review-actions">
+      <div class="review-bulk">
+        <button onclick="acceptAllChanges()">&#10003; Accept All</button>
+        <button onclick="rejectAllChanges()">&#10007; Reject All</button>
+      </div>
+      <span class="review-count" id="reviewCount"></span>
+    </div>
+    <div class="review-cards" id="reviewCards"></div>
+    <div class="review-footer">
+      <button class="review-discard" onclick="closeReview()">Discard</button>
+      <button class="review-apply" id="reviewApplyBtn" onclick="applyAcceptedChanges()">Apply Accepted Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Chat panel -->
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-hdr">
+    <h3>&#128172; Chat Assistant</h3>
+    <div class="chat-hdr-btns">
+      <button onclick="clearChat()">Clear</button>
+      <button class="panel-close" onclick="closeChat()">&times;</button>
+    </div>
+  </div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-empty">
+      <div class="chat-empty-icon">&#128172;</div>
+      <div>Ask me to make changes across the map.<br>e.g. "Add a new acceptance criterion to TSK-1.1.1"</div>
+    </div>
+  </div>
+  <div class="chat-input-area">
+    <textarea id="chatInput" placeholder="Type a message..." rows="1" onkeydown="chatKeyDown(event)"></textarea>
+    <button class="chat-send-btn" id="chatSendBtn" onclick="sendChatMessage()">Send</button>
+  </div>
+</div>
+
+<script>
+const D = {
+  "meta": {
+    "title": "Chivo 2.0 — User Story Map",
+    "subtitle": "Chivo 2.0 Payments Application",
+    "version": "1.0",
+    "date": "February 2026",
+    "methodology": "Story Mapping",
+    "roles": []
+  },
+  "task_registry": {},
+  "question_registry": {
+    "questions": [
+      {
+        "id": "Q-1",
+        "question": "What specific scanning mechanism will tiendas use to identify customer wallets? Will it be QR code scanning, NFC, manual wallet ID entry, or a combination?",
+        "references": [
+          "TSK-1.1.2"
+        ],
+        "priority": "high",
+        "category": "implementation"
+      },
+      {
+        "id": "Q-2",
+        "question": "What is the exact incentive rate for cash-in deposits? The recording mentions '$10 and 10 cents' as an example — is this 1%, a flat fee bonus, or something else? Who funds the incentive?",
+        "references": [
+          "TSK-1.1.3"
+        ],
+        "priority": "high",
+        "category": "business_rules"
+      },
+      {
+        "id": "Q-3",
+        "question": "Which ATM network(s) in El Salvador will Chivo integrate with? Is there an existing ATM integration from Chivo 1.0 that can be reused?",
+        "references": [
+          "STP-1.2",
+          "STP-2.2"
+        ],
+        "priority": "high",
+        "category": "integration"
+      },
+      {
+        "id": "Q-4",
+        "question": "Which banks in El Salvador are part of the Transfer 365 network? Are there any banks that are excluded and would need separate integration?",
+        "references": [
+          "STP-1.4",
+          "TSK-1.4.1"
+        ],
+        "priority": "high",
+        "category": "integration"
+      },
+      {
+        "id": "Q-5",
+        "question": "How does the user authenticate their Chivo wallet at an ATM? Is it via a PIN, biometric, QR code on screen, or NFC?",
+        "references": [
+          "TSK-1.2.1",
+          "TSK-2.2.1"
+        ],
+        "priority": "high",
+        "category": "implementation"
+      },
+      {
+        "id": "Q-6",
+        "question": "Should users find recipients by phone number, email, or both? The recording mentions 'either through email or through phone number, we need to decide.' What is the preferred primary identifier?",
+        "references": [
+          "TSK-3.1.1",
+          "STP-3.1"
+        ],
+        "priority": "high",
+        "category": "product_decision"
+      },
+      {
+        "id": "Q-7",
+        "question": "What are the transaction limits for P2P payments? Are there daily, weekly, or per-transaction caps?",
+        "references": [
+          "TSK-3.2.1",
+          "ACT-3"
+        ],
+        "priority": "high",
+        "category": "business_rules"
+      },
+      {
+        "id": "Q-8",
+        "question": "How extensive does the SMS/USSD payment system need to be? Is it full functionality (send, receive, check balance, cash-in/out) or just basic P2P? What percentage of users are expected to use non-smartphones?",
+        "references": [
+          "TSK-3.5.1",
+          "STP-3.5"
+        ],
+        "priority": "high",
+        "category": "product_decision"
+      },
+      {
+        "id": "Q-9",
+        "question": "What offline payment capability is required? Should the system support fully offline transactions (with later settlement) or just queue transactions when connectivity is intermittent?",
+        "references": [
+          "TSK-3.5.2"
+        ],
+        "priority": "medium",
+        "category": "implementation"
+      },
+      {
+        "id": "Q-10",
+        "question": "What is the merchant onboarding/verification process? Do merchants need to provide business registration documents, tax IDs, or can any user upgrade to a merchant account?",
+        "references": [
+          "TSK-4.1.1",
+          "STP-4.1"
+        ],
+        "priority": "high",
+        "category": "business_rules"
+      },
+      {
+        "id": "Q-11",
+        "question": "Should the merchant payment system support itemized receipts (listing individual goods/services), or is a simple total amount entry sufficient for the initial release?",
+        "references": [
+          "TSK-4.2.1",
+          "STP-4.2"
+        ],
+        "priority": "medium",
+        "category": "product_decision"
+      },
+      {
+        "id": "Q-12",
+        "question": "The recording mentions inventory and supply tracking as a 'secondary thing' — should this be included in the initial scope or deferred to a later release?",
+        "references": [
+          "STP-4.3",
+          "ACT-4"
+        ],
+        "priority": "medium",
+        "category": "scope"
+      },
+      {
+        "id": "Q-13",
+        "question": "Should merchants be able to send payments from their business account to personal Chivo wallets (e.g., employee payroll)? The recording explicitly asks for this decision to be made.",
+        "references": [
+          "TSK-5.3.1",
+          "STP-5.3"
+        ],
+        "priority": "high",
+        "category": "product_decision"
+      },
+      {
+        "id": "Q-14",
+        "question": "What regulatory and compliance requirements exist for merchant-to-person payments (if treated as payroll)? Are there tax reporting obligations?",
+        "references": [
+          "TSK-5.3.1"
+        ],
+        "priority": "high",
+        "category": "compliance"
+      },
+      {
+        "id": "Q-15",
+        "question": "Should the international remittance feature include a standalone international Chivo wallet app, or should senders use existing services (bank transfers, mobile money) that integrate with Chivo?",
+        "references": [
+          "TSK-6.1.1",
+          "STP-6.1"
+        ],
+        "priority": "high",
+        "category": "product_decision"
+      },
+      {
+        "id": "Q-16",
+        "question": "Should international remittances be transferred via stablecoin rails or direct USD bank-to-bank transfers? The recording specifically raises this as an open question.",
+        "references": [
+          "TSK-6.2.2"
+        ],
+        "priority": "high",
+        "category": "architecture"
+      },
+      {
+        "id": "Q-17",
+        "question": "What countries need to be supported for international remittances at launch? The recording mentions US, Canada, and Europe — is it all of these or a phased rollout?",
+        "references": [
+          "STP-6.1",
+          "ACT-6"
+        ],
+        "priority": "high",
+        "category": "scope"
+      },
+      {
+        "id": "Q-18",
+        "question": "What international money transfer licenses and regulatory approvals are needed for the remittance feature in each target country?",
+        "references": [
+          "ACT-6",
+          "TSK-6.1.2"
+        ],
+        "priority": "high",
+        "category": "compliance"
+      },
+      {
+        "id": "Q-21",
+        "question": "How does the tienda cash-out agent model work financially? Does the tienda earn a commission for processing cash-in/cash-out transactions? Who bears the cost?",
+        "references": [
+          "TSK-2.1.2",
+          "STP-2.1"
+        ],
+        "priority": "high",
+        "category": "business_rules"
+      },
+      {
+        "id": "Q-22",
+        "question": "What happens if a tienda runs out of cash liquidity? Is there a way for tiendas to replenish their float? Can they request cash delivery?",
+        "references": [
+          "TSK-2.1.2"
+        ],
+        "priority": "medium",
+        "category": "operations"
+      },
+      {
+        "id": "Q-25",
+        "question": "What is the dispute resolution process if a user claims they didn't authorize a transaction? How are fraud cases handled given the non-reversible payment model?",
+        "references": [
+          "TSK-3.2.3",
+          "ACT-3"
+        ],
+        "priority": "high",
+        "category": "operations"
+      }
+    ],
+    "cross_cutting_questions": [
+      {
+        "id": "Q-19",
+        "question": "What KYC (Know Your Customer) requirements exist for wallet registration, cash-in/cash-out, P2P transfers, and international remittances? Are there different tiers based on transaction volume?",
+        "references": [
+          "ACT-1",
+          "ACT-2",
+          "ACT-3",
+          "ACT-6"
+        ],
+        "priority": "high",
+        "category": "compliance"
+      },
+      {
+        "id": "Q-20",
+        "question": "Are there anti-money laundering (AML) transaction monitoring requirements? What suspicious activity thresholds need to be implemented?",
+        "references": [
+          "ACT-1",
+          "ACT-2",
+          "ACT-3",
+          "ACT-5",
+          "ACT-6"
+        ],
+        "priority": "high",
+        "category": "compliance"
+      },
+      {
+        "id": "Q-23",
+        "question": "What is the user registration and onboarding process for new Chivo wallet users? What identity verification is required?",
+        "references": [
+          "ACT-1",
+          "ACT-3"
+        ],
+        "priority": "high",
+        "category": "product_decision"
+      },
+      {
+        "id": "Q-24",
+        "question": "Are there any existing Chivo 1.0 systems, APIs, or infrastructure that Chivo 2.0 should integrate with or migrate from?",
+        "references": [
+          "ACT-1",
+          "ACT-2",
+          "ACT-3",
+          "ACT-4",
+          "ACT-5",
+          "ACT-6"
+        ],
+        "priority": "high",
+        "category": "integration"
+      }
+    ]
+  },
+  "maps": {
+    "platform": {
+      "label": "Platform Overview",
+      "description": "Complete view of all Chivo 2.0 payment system activities",
+      "persona_id": null,
+      "task_count": 34,
+      "activities": [
+        {
+          "id": "ACT-1",
+          "title": "Fund the Wallet (Cash-In)",
+          "description": "Enable users to load money onto their Chivo wallet through multiple channels in a cash-based economy.",
+          "steps": [
+            {
+              "id": "STP-1.1",
+              "title": "Deposit Cash at Local Store (Tienda)",
+              "description": "Allow users to visit local merchants/tiendas to hand over cash and have their Chivo wallet recharged.",
+              "tasks": [
+                {
+                  "id": "TSK-1.1.1",
+                  "title": "Tienda Cash-In Transaction",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-1.1.1",
+                    "text": "As a Chivo wallet user, I want to give cash to my local tienda and have my wallet balance increased by that amount, so that I can convert my physical cash into a digital balance."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-1.1.1a",
+                      "text": "Given a user with a valid Chivo wallet, when the tienda operator scans the user's wallet identifier and enters the cash amount, then the user's wallet balance is increased by that amount in real-time."
+                    },
+                    {
+                      "id": "AC-1.1.1b",
+                      "text": "Given a successful cash-in transaction, when the transaction completes, then both the user and the tienda operator receive a confirmation notification with the transaction amount and new balance."
+                    },
+                    {
+                      "id": "AC-1.1.1c",
+                      "text": "Given a cash-in transaction, when the deposit is processed, then a transaction record is created with timestamp, amount, tienda ID, and user wallet ID."
+                    }
+                  ]
+                },
+                {
+                  "id": "TSK-1.1.2",
+                  "title": "Tienda Scanning/Identification System",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-1.1.2",
+                    "text": "As a tienda operator, I want to scan or identify a customer's Chivo wallet quickly, so that I can process their cash deposit efficiently."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-1.1.2a",
+                      "text": "Given a tienda operator with the Chivo merchant app, when they initiate a cash-in, then they can scan the customer's QR code or enter their wallet identifier manually."
+                    },
+                    {
+                      "id": "AC-1.1.2b",
+                      "text": "Given a scanned wallet identifier, when the scan is successful, then the customer's name (partially masked) is displayed for the operator to confirm before proceeding."
+                    }
+                  ]
+                },
+                {
+                  "id": "TSK-1.1.3",
+                  "title": "Cash-In Deposit Incentive",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-1.1.3",
+                    "text": "As a Chivo wallet user, I want to receive a small bonus when I deposit cash into my wallet, so that I am incentivized to move from cash to digital payments."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-1.1.3a",
+                      "text": "Given a user depositing cash at a tienda, when the deposit is processed, then a configurable bonus percentage (e.g., 1%) is added to the deposited amount."
+                    },
+                    {
+                      "id": "AC-1.1.3b",
+                      "text": "Given an incentive is applied, when the transaction completes, then the receipt clearly shows the original deposit amount, the bonus amount, and the total credited."
+                    },
+                    {
+                      "id": "AC-1.1.3c",
+                      "text": "Given the incentive program, when an administrator configures it, then they can set the bonus rate, maximum bonus per transaction, daily caps, and enable/disable the program."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-1.2",
+              "title": "Deposit Cash at ATM",
+              "description": "Allow users to insert cash into ATMs and have their Chivo wallet automatically updated.",
+              "tasks": [
+                {
+                  "id": "TSK-1.2.1",
+                  "title": "ATM Cash-In Integration",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-1.2.1",
+                    "text": "As a Chivo wallet user, I want to insert cash into an ATM and have my wallet balance updated automatically, so that I can load money onto my wallet at any ATM location."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-1.2.1a",
+                      "text": "Given a user at a cash-accepting ATM, when they authenticate with their Chivo wallet credentials and insert cash, then the wallet balance is updated within 30 seconds of the ATM confirming the deposit."
+                    },
+                    {
+                      "id": "AC-1.2.1b",
+                      "text": "Given a successful ATM deposit, when the transaction completes, then the user receives a push notification and can see the transaction in their history immediately."
+                    },
+                    {
+                      "id": "AC-1.2.1c",
+                      "text": "Given an ATM deposit, when the machine cannot verify the bills or encounters an error, then the cash is returned to the user and no balance change occurs."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-1.3",
+              "title": "Deposit Cash at Bank",
+              "description": "Allow users to deposit cash at a bank branch and have their Chivo wallet credited.",
+              "tasks": [
+                {
+                  "id": "TSK-1.3.1",
+                  "title": "Bank Branch Cash-In",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-1.3.1",
+                    "text": "As a Chivo wallet user, I want to deposit cash at a bank branch and have my Chivo wallet credited, so that I can use bank branches as another channel to load my wallet."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-1.3.1a",
+                      "text": "Given a user at a bank branch, when the teller processes a Chivo wallet deposit with the user's wallet identifier, then the wallet balance is updated and both parties receive confirmation."
+                    },
+                    {
+                      "id": "AC-1.3.1b",
+                      "text": "Given a bank branch deposit, when the transaction is processed, then a receipt is generated showing the deposit amount, wallet ID, and timestamp."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-1.4",
+              "title": "Bank-to-Wallet Transfer (Transfer 365)",
+              "description": "Allow users to connect their existing bank account and transfer funds to their Chivo wallet using El Salvador's Transfer 365 instant ACH system.",
+              "tasks": [
+                {
+                  "id": "TSK-1.4.1",
+                  "title": "Link Bank Account to Chivo Wallet",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-1.4.1",
+                    "text": "As a Chivo wallet user, I want to connect my existing Salvadoran bank account to my Chivo wallet, so that I can transfer money digitally between my bank and wallet."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-1.4.1a",
+                      "text": "Given a user with a Salvadoran bank account, when they initiate bank linking in the Chivo app, then they can authenticate with their bank credentials and authorize the connection."
+                    },
+                    {
+                      "id": "AC-1.4.1b",
+                      "text": "Given a linked bank account, when the connection is established, then the user can see the linked account (partially masked) in their Chivo wallet settings."
+                    },
+                    {
+                      "id": "AC-1.4.1c",
+                      "text": "Given a linked bank account, when the user wants to unlink it, then they can remove the connection from settings with appropriate confirmation."
+                    }
+                  ]
+                },
+                {
+                  "id": "TSK-1.4.2",
+                  "title": "Transfer from Bank to Wallet",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-1.4.2",
+                    "text": "As a Chivo wallet user, I want to transfer money from my linked bank account to my Chivo wallet instantly via Transfer 365, so that I can load my wallet without handling cash."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-1.4.2a",
+                      "text": "Given a user with a linked bank account, when they initiate a transfer to their wallet, then the funds are transferred via Transfer 365 and the wallet balance updates within seconds."
+                    },
+                    {
+                      "id": "AC-1.4.2b",
+                      "text": "Given a bank-to-wallet transfer, when the transfer is initiated, then the user must confirm the amount and source account before the transfer executes."
+                    },
+                    {
+                      "id": "AC-1.4.2c",
+                      "text": "Given a failed bank transfer (insufficient funds, bank error), when the transfer cannot complete, then the user receives a clear error message and no balance change occurs."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ACT-2",
+          "title": "Withdraw from Wallet (Cash-Out)",
+          "description": "Enable users to convert their digital Chivo wallet balance back into physical cash through multiple channels.",
+          "steps": [
+            {
+              "id": "STP-2.1",
+              "title": "Withdraw Cash at Local Store (Tienda)",
+              "description": "Allow users to visit a tienda and receive physical cash in exchange for a deduction from their Chivo wallet balance.",
+              "tasks": [
+                {
+                  "id": "TSK-2.1.1",
+                  "title": "Tienda Cash-Out Transaction",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-2.1.1",
+                    "text": "As a Chivo wallet user, I want to go to a local tienda and receive cash by deducting from my wallet balance, so that I can access physical money when I need it."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-2.1.1a",
+                      "text": "Given a user with sufficient wallet balance, when they request a cash-out at a tienda and the operator processes it, then the user's wallet is debited and they receive the equivalent cash."
+                    },
+                    {
+                      "id": "AC-2.1.1b",
+                      "text": "Given a cash-out request, when the amount exceeds the user's balance, then the transaction is rejected with a clear insufficient balance message."
+                    },
+                    {
+                      "id": "AC-2.1.1c",
+                      "text": "Given a cash-out transaction, when completed, then both parties receive a confirmation with the amount, timestamp, and updated balances."
+                    }
+                  ]
+                },
+                {
+                  "id": "TSK-2.1.2",
+                  "title": "Tienda Liquidity/Treasury Management",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-2.1.2",
+                    "text": "As a tienda operator, I want to manage my cash liquidity for Chivo cash-out services, so that I always have enough physical cash to serve customers requesting withdrawals."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-2.1.2a",
+                      "text": "Given a tienda operator, when they view their agent dashboard, then they can see their current cash float balance and digital Chivo balance."
+                    },
+                    {
+                      "id": "AC-2.1.2b",
+                      "text": "Given low cash liquidity, when the tienda's float drops below a configurable threshold, then the operator receives an alert to replenish their cash float."
+                    },
+                    {
+                      "id": "AC-2.1.2c",
+                      "text": "Given a cash-out request exceeding the tienda's available float, when the operator cannot fulfil it, then the transaction is declined and the user is directed to nearby alternatives."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-2.2",
+              "title": "Withdraw Cash at ATM",
+              "description": "Allow users to withdraw cash from ATMs using their Chivo wallet.",
+              "tasks": [
+                {
+                  "id": "TSK-2.2.1",
+                  "title": "ATM Cash-Out",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-2.2.1",
+                    "text": "As a Chivo wallet user, I want to withdraw cash from an ATM using my Chivo wallet, so that I can access physical money at any ATM location."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-2.2.1a",
+                      "text": "Given a user at an ATM, when they authenticate with their Chivo wallet and request a withdrawal amount, then the ATM dispenses the cash and the wallet is debited."
+                    },
+                    {
+                      "id": "AC-2.2.1b",
+                      "text": "Given a successful ATM withdrawal, when the cash is dispensed, then the user receives a push notification and sees the transaction in their history."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-2.3",
+              "title": "Withdraw Cash at Bank",
+              "description": "Allow users to withdraw cash at bank branches from their Chivo wallet balance.",
+              "tasks": [
+                {
+                  "id": "TSK-2.3.1",
+                  "title": "Bank Branch Cash-Out",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-2.3.1",
+                    "text": "As a Chivo wallet user, I want to withdraw cash at a bank branch from my Chivo wallet balance, so that I can access larger amounts of cash through a bank."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-2.3.1a",
+                      "text": "Given a user at a bank branch with sufficient wallet balance, when the teller processes a Chivo wallet withdrawal, then the wallet is debited and the user receives cash."
+                    },
+                    {
+                      "id": "AC-2.3.1b",
+                      "text": "Given a bank branch withdrawal, when completed, then a receipt is generated for both the user and the bank."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-2.4",
+              "title": "Wallet-to-Bank Transfer",
+              "description": "Allow users to transfer funds from their Chivo wallet back to their linked bank account.",
+              "tasks": [
+                {
+                  "id": "TSK-2.4.1",
+                  "title": "Transfer from Wallet to Bank",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-2.4.1",
+                    "text": "As a Chivo wallet user, I want to transfer money from my Chivo wallet to my linked bank account via Transfer 365, so that I can move digital funds back into my traditional bank account."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-2.4.1a",
+                      "text": "Given a user with a linked bank account and sufficient wallet balance, when they initiate a wallet-to-bank transfer, then the funds are sent via Transfer 365 and the wallet is debited instantly."
+                    },
+                    {
+                      "id": "AC-2.4.1b",
+                      "text": "Given a wallet-to-bank transfer, when completed, then the user can see the pending/completed transfer in both their Chivo transaction history and bank statement."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ACT-3",
+          "title": "Send & Receive Money (P2P Payments)",
+          "description": "Enable users to send money to family, friends, and other individuals directly from their Chivo wallet, similar to Venmo/Zelle.",
+          "steps": [
+            {
+              "id": "STP-3.1",
+              "title": "Find Recipient",
+              "description": "Allow users to locate the person they want to send money to within the app.",
+              "tasks": [
+                {
+                  "id": "TSK-3.1.1",
+                  "title": "Search for Recipient by Phone or Email",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-3.1.1",
+                    "text": "As a Chivo wallet user, I want to find another user by their phone number or email address, so that I can send them money."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-3.1.1a",
+                      "text": "Given a user in the send money flow, when they enter a phone number or email address, then the system searches for matching Chivo wallet accounts and displays results."
+                    },
+                    {
+                      "id": "AC-3.1.1b",
+                      "text": "Given a search result, when a matching account is found, then the recipient's name (partially masked) is displayed for confirmation."
+                    },
+                    {
+                      "id": "AC-3.1.1c",
+                      "text": "Given a search with no results, when no matching account is found, then the user is informed and optionally given the ability to invite the person to Chivo."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-3.2",
+              "title": "Send Payment",
+              "description": "Process the actual transfer of funds from one user's wallet to another with verification and instant settlement.",
+              "tasks": [
+                {
+                  "id": "TSK-3.2.1",
+                  "title": "Send Money to Another User",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-3.2.1",
+                    "text": "As a Chivo wallet user, I want to send money to another Chivo user with instant settlement, so that the recipient receives the funds immediately."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-3.2.1a",
+                      "text": "Given a user with sufficient balance who has selected a recipient, when they enter an amount and confirm, then the funds are transferred instantly and both parties see updated balances."
+                    },
+                    {
+                      "id": "AC-3.2.1b",
+                      "text": "Given a P2P transfer, when the amount exceeds the sender's balance, then the transaction is rejected with an insufficient funds message."
+                    }
+                  ]
+                },
+                {
+                  "id": "TSK-3.2.2",
+                  "title": "Payment Verification & Confirmation",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-3.2.2",
+                    "text": "As a Chivo wallet user, I want to verify the recipient before sending money (e.g., confirm last 4 digits of their phone number), so that I don't accidentally send money to the wrong person."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-3.2.2a",
+                      "text": "Given a user about to send money, when they reach the confirmation screen, then they must verify the recipient by confirming the last 4 digits of the recipient's phone number."
+                    },
+                    {
+                      "id": "AC-3.2.2b",
+                      "text": "Given a confirmed payment, when the user sends money, then a clear message states that the payment is final and cannot be reversed."
+                    },
+                    {
+                      "id": "AC-3.2.2c",
+                      "text": "Given a completed P2P payment, when the transaction settles, then both sender and recipient receive push notifications with transaction details."
+                    }
+                  ]
+                },
+                {
+                  "id": "TSK-3.2.3",
+                  "title": "Non-Reversible Payment Policy Enforcement",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-3.2.3",
+                    "text": "As the Chivo platform, I want all P2P payments to be final and non-reversible (like Zelle/Venmo), so that the system provides settlement finality and prevents fraud chargebacks."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-3.2.3a",
+                      "text": "Given a completed P2P payment, when a user attempts to reverse or cancel it, then the system clearly states that P2P payments are final and cannot be reversed."
+                    },
+                    {
+                      "id": "AC-3.2.3b",
+                      "text": "Given a P2P payment in progress, when the user is on the confirmation screen, then a prominent warning states that this action cannot be undone."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-3.3",
+              "title": "QR Code Payment",
+              "description": "Enable instant payments between users by scanning QR codes, especially for paying strangers or in-person transactions.",
+              "tasks": [
+                {
+                  "id": "TSK-3.3.1",
+                  "title": "Personal QR Code Generation",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-3.3.1",
+                    "text": "As a Chivo wallet user, I want to have a unique QR code linked to my wallet, so that others can scan it to pay me instantly."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-3.3.1a",
+                      "text": "Given a registered Chivo wallet user, when they access their QR code screen, then a unique QR code linked to their wallet is displayed."
+                    },
+                    {
+                      "id": "AC-3.3.1b",
+                      "text": "Given a user's QR code, when they want to share it remotely, then they can send it via email, text message, or other messaging apps."
+                    }
+                  ]
+                },
+                {
+                  "id": "TSK-3.3.2",
+                  "title": "Scan QR Code to Pay",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-3.3.2",
+                    "text": "As a Chivo wallet user, I want to scan another user's QR code with my phone camera to initiate a payment, so that I can pay someone I just met without needing their phone number or email."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-3.3.2a",
+                      "text": "Given a user with the Chivo app open, when they scan another user's QR code, then the recipient's identity is displayed and the user can enter an amount to send."
+                    },
+                    {
+                      "id": "AC-3.3.2b",
+                      "text": "Given a scanned QR payment, when the user confirms the amount, then the same verification and confirmation flow as standard P2P payments applies."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-3.4",
+              "title": "Request Payment",
+              "description": "Allow users to request money from other users.",
+              "tasks": [
+                {
+                  "id": "TSK-3.4.1",
+                  "title": "Send Payment Request",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-3.4.1",
+                    "text": "As a Chivo wallet user, I want to send a payment request to another user (via QR code, text, or in-app), so that they can easily pay me the requested amount."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-3.4.1a",
+                      "text": "Given a user who needs to receive money, when they create a payment request with an amount, then a unique payment link/QR code is generated that the payer can use."
+                    },
+                    {
+                      "id": "AC-3.4.1b",
+                      "text": "Given a payment request, when the payer receives it, then they see the requester's identity, the amount, and can approve or decline the request."
+                    },
+                    {
+                      "id": "AC-3.4.1c",
+                      "text": "Given an approved payment request, when the payer confirms, then the standard P2P payment flow executes with instant settlement."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-3.5",
+              "title": "Low-Connectivity & Non-Smartphone Support",
+              "description": "Ensure P2P payments work in environments with low electricity, poor connectivity, and on non-smartphone devices.",
+              "tasks": [
+                {
+                  "id": "TSK-3.5.1",
+                  "title": "SMS/USSD-Based Payments",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-3.5.1",
+                    "text": "As a Chivo user with a basic/analog phone (non-smartphone), I want to send and receive payments via SMS or USSD codes, so that I can use the Chivo system without a smartphone."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-3.5.1a",
+                      "text": "Given a user with a basic phone, when they send a specially formatted SMS or dial a USSD code, then they can initiate a P2P payment with recipient identifier and amount."
+                    },
+                    {
+                      "id": "AC-3.5.1b",
+                      "text": "Given an SMS-based payment, when the transaction completes, then both sender and recipient receive SMS confirmations with transaction details."
+                    }
+                  ]
+                },
+                {
+                  "id": "TSK-3.5.2",
+                  "title": "Offline/Low-Connectivity Payment Queue",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-3.5.2",
+                    "text": "As a Chivo wallet user in an area with intermittent connectivity, I want my payment to be queued and processed when connectivity is restored, so that I don't lose my transaction."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-3.5.2a",
+                      "text": "Given a user initiating a payment with poor connectivity, when the transaction cannot be sent immediately, then it is queued locally and the user is notified it is pending."
+                    },
+                    {
+                      "id": "AC-3.5.2b",
+                      "text": "Given a queued payment, when connectivity is restored, then the payment is automatically processed and both parties are notified."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ACT-4",
+          "title": "Pay for Goods & Services (Merchant Acceptance)",
+          "description": "Enable merchants to accept Chivo wallet payments for goods and services, with dual account management, reporting, and incentive programs.",
+          "steps": [
+            {
+              "id": "STP-4.1",
+              "title": "Set Up Merchant Account",
+              "description": "Allow small merchants to create a merchant account alongside their personal Chivo wallet, with the ability to toggle between them.",
+              "tasks": [
+                {
+                  "id": "TSK-4.1.1",
+                  "title": "Merchant Account Registration",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-4.1.1",
+                    "text": "As a small business owner, I want to register a merchant account on the Chivo platform in addition to my personal wallet, so that I can accept Chivo payments for my business."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-4.1.1a",
+                      "text": "Given an existing Chivo wallet user, when they apply for a merchant account, then they can provide business details and create a separate merchant profile."
+                    },
+                    {
+                      "id": "AC-4.1.1b",
+                      "text": "Given a registered merchant, when they open the Chivo app, then they can toggle between their personal wallet view and merchant account view."
+                    },
+                    {
+                      "id": "AC-4.1.1c",
+                      "text": "Given a merchant account, when it is created, then it has a separate balance, transaction history, and settings from the personal wallet."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-4.2",
+              "title": "Accept Chivo Payment",
+              "description": "Process payments from customers using their Chivo wallets for goods and services at the point of sale.",
+              "tasks": [
+                {
+                  "id": "TSK-4.2.1",
+                  "title": "Merchant Payment Entry",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-4.2.1",
+                    "text": "As a merchant, I want to enter the total cost of goods/services and have the customer pay from their Chivo wallet, so that I can accept digital payments at my store."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-4.2.1a",
+                      "text": "Given a merchant in their merchant account, when they enter a payment amount, then a payment request is generated that the customer can scan or approve."
+                    },
+                    {
+                      "id": "AC-4.2.1b",
+                      "text": "Given a customer paying a merchant, when they scan the merchant's payment QR or approve the request, then the funds transfer instantly from the customer's wallet to the merchant's account."
+                    },
+                    {
+                      "id": "AC-4.2.1c",
+                      "text": "Given a completed merchant payment, when the transaction settles, then both the merchant and customer receive confirmation with amount, timestamp, and merchant name."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-4.3",
+              "title": "View Transaction History & Reporting",
+              "description": "Provide merchants with dashboards showing receipts, earnings, and sales reporting by various time periods.",
+              "tasks": [
+                {
+                  "id": "TSK-4.3.1",
+                  "title": "Merchant Transaction Dashboard",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-4.3.1",
+                    "text": "As a merchant, I want to view all my Chivo payment transactions with receipts and earnings summaries, so that I can track my business income from digital payments."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-4.3.1a",
+                      "text": "Given a merchant viewing their dashboard, when they access the transaction history, then they see a list of all incoming payments with date, time, amount, and customer reference."
+                    },
+                    {
+                      "id": "AC-4.3.1b",
+                      "text": "Given a merchant dashboard, when they select a time period (day, week, month), then they see aggregated totals for that period."
+                    }
+                  ]
+                },
+                {
+                  "id": "TSK-4.3.2",
+                  "title": "Merchant Sales Reporting",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-4.3.2",
+                    "text": "As a merchant, I want to generate sales reports by day, week, and month, so that I can manage my business accounting and understand my revenue trends."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-4.3.2a",
+                      "text": "Given a merchant, when they access reporting, then they can view and export reports showing total sales, transaction counts, and average transaction values by time period."
+                    },
+                    {
+                      "id": "AC-4.3.2b",
+                      "text": "Given a merchant report, when they export it, then it is available in a standard format (PDF or CSV) for their accounting needs."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-4.4",
+              "title": "Offer Merchant Incentives & Discounts",
+              "description": "Allow merchants to create promotions or discounts to incentivize customers to pay with Chivo.",
+              "tasks": [
+                {
+                  "id": "TSK-4.4.1",
+                  "title": "Merchant Discount for Chivo Payments",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-4.4.1",
+                    "text": "As a merchant, I want to offer a discount to customers who pay with their Chivo wallet, so that I can incentivize digital payments and attract more customers."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-4.4.1a",
+                      "text": "Given a merchant, when they configure a promotion in their merchant settings, then they can set a percentage or fixed amount discount for Chivo payments."
+                    },
+                    {
+                      "id": "AC-4.4.1b",
+                      "text": "Given an active promotion, when a customer pays with Chivo, then the discount is automatically applied and shown on the receipt to both parties."
+                    },
+                    {
+                      "id": "AC-4.4.1c",
+                      "text": "Given merchant incentives, when nearby customers search in the Chivo app, then they can discover merchants offering Chivo payment discounts."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ACT-5",
+          "title": "Manage Merchant Funds",
+          "description": "Enable merchants to move funds between their merchant Chivo wallet and their business bank account, and potentially pay employees.",
+          "steps": [
+            {
+              "id": "STP-5.1",
+              "title": "Transfer Merchant Funds to Bank",
+              "description": "Allow merchants to move their Chivo merchant balance into their business bank account.",
+              "tasks": [
+                {
+                  "id": "TSK-5.1.1",
+                  "title": "Merchant Wallet-to-Bank Transfer",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-5.1.1",
+                    "text": "As a merchant, I want to transfer my Chivo merchant balance to my business bank account, so that I can access my earnings through my regular banking system."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-5.1.1a",
+                      "text": "Given a merchant with a linked business bank account, when they initiate a transfer from their merchant wallet, then the funds are sent to their bank account via Transfer 365."
+                    },
+                    {
+                      "id": "AC-5.1.1b",
+                      "text": "Given a merchant transfer, when completed, then the merchant sees the transaction in both their Chivo history and bank statement."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-5.2",
+              "title": "Fund Merchant Wallet from Bank",
+              "description": "Allow merchants to load their merchant Chivo wallet from their business bank account.",
+              "tasks": [
+                {
+                  "id": "TSK-5.2.1",
+                  "title": "Bank-to-Merchant Wallet Transfer",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-5.2.1",
+                    "text": "As a merchant, I want to transfer money from my business bank account to my Chivo merchant wallet, so that I can maintain liquidity for cash-out services or refunds."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-5.2.1a",
+                      "text": "Given a merchant with a linked bank account, when they initiate a bank-to-wallet transfer, then the funds are deposited into their merchant wallet via Transfer 365."
+                    },
+                    {
+                      "id": "AC-5.2.1b",
+                      "text": "Given a bank-to-merchant transfer, when the transfer completes, then the merchant's wallet balance is updated in real-time."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-5.3",
+              "title": "Merchant-to-Person Payments (Employee Payroll)",
+              "description": "Potentially allow merchants to pay employees or individuals directly from their merchant wallet balance.",
+              "tasks": [
+                {
+                  "id": "TSK-5.3.1",
+                  "title": "Pay Employees from Merchant Wallet",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-5.3.1",
+                    "text": "As a merchant/business owner, I want to pay my employees directly from my Chivo merchant wallet balance, so that I can handle payroll digitally without going through the banking system."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-5.3.1a",
+                      "text": "Given a merchant with sufficient balance, when they initiate a payment to an employee's Chivo wallet, then the funds are transferred from the merchant account to the employee's personal wallet."
+                    },
+                    {
+                      "id": "AC-5.3.1b",
+                      "text": "Given an employee payment, when completed, then it is categorized as a 'payroll' transaction in the merchant's reporting."
+                    },
+                    {
+                      "id": "AC-5.3.1c",
+                      "text": "Given merchant-to-person payments, when the feature is enabled, then appropriate regulatory and compliance checks are enforced."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ACT-6",
+          "title": "Receive International Remittances",
+          "description": "Enable Salvadorans to receive money from family and friends abroad (primarily US, Canada, Europe) directly into their Chivo wallet, bypassing expensive third-party transfer services.",
+          "steps": [
+            {
+              "id": "STP-6.1",
+              "title": "Send Remittance from Abroad",
+              "description": "Allow people outside El Salvador to send money to a Chivo wallet in El Salvador.",
+              "tasks": [
+                {
+                  "id": "TSK-6.1.1",
+                  "title": "International Chivo Wallet (Sender Side)",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-6.1.1",
+                    "text": "As a Salvadoran diaspora member living in the US/Canada/Europe, I want to load money onto an international Chivo wallet, so that I can send remittances directly to my family's Chivo wallet in El Salvador."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-6.1.1a",
+                      "text": "Given a person abroad, when they download and register for Chivo, then they can create an international wallet linked to their local bank account or payment method."
+                    },
+                    {
+                      "id": "AC-6.1.1b",
+                      "text": "Given an international Chivo user, when they load funds, then they can use their local bank account, debit card, or other local payment methods to add funds."
+                    }
+                  ]
+                },
+                {
+                  "id": "TSK-6.1.2",
+                  "title": "Send Remittance to El Salvador",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-6.1.2",
+                    "text": "As an international Chivo user, I want to send money directly to a Chivo wallet in El Salvador with minimal fees, so that my family receives more of the money I send compared to using Western Union or similar services."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-6.1.2a",
+                      "text": "Given an international user with funds, when they initiate a remittance to a Salvadoran Chivo wallet, then the transfer is processed with fees significantly lower than traditional remittance services."
+                    },
+                    {
+                      "id": "AC-6.1.2b",
+                      "text": "Given a remittance, when it is sent, then the recipient in El Salvador receives the funds in their Chivo wallet and is notified."
+                    },
+                    {
+                      "id": "AC-6.1.2c",
+                      "text": "Given a remittance, when it is processed, then both sender and recipient see the amount sent, fees charged, exchange rate applied, and amount received."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-6.2",
+              "title": "Currency Conversion",
+              "description": "Handle conversion from foreign currencies (USD from US, CAD, EUR, etc.) into USD for the recipient's Chivo wallet.",
+              "tasks": [
+                {
+                  "id": "TSK-6.2.1",
+                  "title": "Foreign Currency to USD Conversion",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-6.2.1",
+                    "text": "As an international remittance sender in a non-USD country, I want my local currency to be converted to USD at a transparent rate when sending to a Chivo wallet, so that my family receives the correct USD amount."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-6.2.1a",
+                      "text": "Given a sender in a non-USD country, when they initiate a remittance, then the current exchange rate is displayed and the recipient USD amount is shown before confirmation."
+                    },
+                    {
+                      "id": "AC-6.2.1b",
+                      "text": "Given a currency conversion, when the exchange rate is applied, then the rate is competitive and the fee structure is transparent with no hidden charges."
+                    }
+                  ]
+                },
+                {
+                  "id": "TSK-6.2.2",
+                  "title": "Stablecoin vs Direct USD Transfer Path",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-6.2.2",
+                    "text": "As the Chivo platform, I want to determine whether international remittances should be routed through stablecoins or direct USD rails, so that we can optimize for speed, cost, and regulatory compliance."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-6.2.2a",
+                      "text": "Given the remittance infrastructure, when the transfer method is decided, then the system supports the chosen method (stablecoin or direct USD) with appropriate settlement times."
+                    },
+                    {
+                      "id": "AC-6.2.2b",
+                      "text": "Given the transfer path, when funds arrive in the recipient's wallet, then they appear as USD regardless of the underlying transfer mechanism."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "STP-6.3",
+              "title": "Receive & Use Remittance",
+              "description": "Once remittance lands in the Chivo wallet, the user can use all existing wallet features (cash-out, P2P, merchant payments).",
+              "tasks": [
+                {
+                  "id": "TSK-6.3.1",
+                  "title": "Remittance Receipt & Notification",
+                  "roles": [],
+                  "device": "all",
+                  "user_story": {
+                    "id": "US-6.3.1",
+                    "text": "As a Salvadoran Chivo wallet user, I want to receive remittances from abroad directly into my wallet and be notified immediately, so that I can use the funds right away."
+                  },
+                  "acceptance_criteria": [
+                    {
+                      "id": "AC-6.3.1a",
+                      "text": "Given a remittance sent from abroad, when the funds arrive, then the recipient receives a push notification and SMS with the amount received and sender details."
+                    },
+                    {
+                      "id": "AC-6.3.1b",
+                      "text": "Given received remittance funds, when they are in the wallet, then the user can immediately use them for cash-out, P2P transfers, or merchant payments using all existing wallet features."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+};
+
+// ---- State ----
+let currentMap = 'platform';
+let expanded = false, qFilter = false, panelOpen = false, activeRoleFilter = null;
+let currentModalQid = null;
+let saveTimeout = null;
+
+// ---- localStorage helpers ----
+const STORAGE_KEY = 'chivo2_question_responses';
+const SETTINGS_KEY = 'chivo2_api_settings';
+const EVOLVED_KEY = 'chivo2_story_map_evolved';
+const CHAT_KEY = 'chivo2_chat_history';
+
+let D_ORIGINAL = null;
+let chatOpen = false;
+let chatHistory = [];
+let currentChangeset = null;
+let changeDecisions = [];
+
+// ===== SETTINGS =====
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { apiKey: '', model: 'claude-sonnet-4-5-20250929' };
+}
+
+function saveSettings() {
+  const key = document.getElementById('settingsApiKey').value.trim();
+  const model = document.getElementById('settingsModel').value;
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify({ apiKey: key, model: model }));
+  closeSettings();
+  updateEvolveButton();
+}
+
+function openSettings() {
+  const s = loadSettings();
+  document.getElementById('settingsApiKey').value = s.apiKey;
+  document.getElementById('settingsApiKey').type = 'password';
+  document.getElementById('settingsVisBtn').textContent = 'Show';
+  document.getElementById('settingsModel').value = s.model;
+  document.getElementById('settingsBg').classList.add('open');
+}
+
+function closeSettings(e) {
+  if (e && e.target !== document.getElementById('settingsBg')) return;
+  document.getElementById('settingsBg').classList.remove('open');
+}
+
+function toggleApiKeyVis() {
+  const inp = document.getElementById('settingsApiKey');
+  const btn = document.getElementById('settingsVisBtn');
+  if (inp.type === 'password') {
+    inp.type = 'text'; btn.textContent = 'Hide';
+  } else {
+    inp.type = 'password'; btn.textContent = 'Show';
+  }
+}
+
+// ===== EVOLVED STATE MANAGEMENT =====
+function initEvolvedState() {
+  D_ORIGINAL = JSON.parse(JSON.stringify(D));
+  loadEvolvedState();
+  updateEvolvedIndicator();
+}
+
+function loadEvolvedState() {
+  try {
+    const raw = localStorage.getItem(EVOLVED_KEY);
+    if (!raw) return;
+    const evolved = JSON.parse(raw);
+    if (evolved.task_registry) {
+      Object.keys(evolved.task_registry).forEach(k => {
+        D.task_registry[k] = evolved.task_registry[k];
+      });
+    }
+    if (evolved.question_registry) {
+      if (evolved.question_registry.questions)
+        D.question_registry.questions = evolved.question_registry.questions;
+      if (evolved.question_registry.cross_cutting_questions)
+        D.question_registry.cross_cutting_questions = evolved.question_registry.cross_cutting_questions;
+    }
+    if (evolved.maps) {
+      Object.keys(evolved.maps).forEach(k => {
+        D.maps[k] = evolved.maps[k];
+      });
+    }
+    if (evolved._added_task_ids) {
+      D._added_task_ids = evolved._added_task_ids;
+    }
+    if (evolved._modified_task_ids) {
+      D._modified_task_ids = evolved._modified_task_ids;
+    }
+  } catch(e) { console.error('Failed to load evolved state:', e); }
+}
+
+function saveEvolvedState() {
+  try {
+    const toSave = {
+      task_registry: D.task_registry,
+      question_registry: D.question_registry,
+      maps: D.maps
+    };
+    if (D._added_task_ids) toSave._added_task_ids = D._added_task_ids;
+    if (D._modified_task_ids) toSave._modified_task_ids = D._modified_task_ids;
+    const json = JSON.stringify(toSave);
+    if (json.length > 4.5 * 1024 * 1024) {
+      alert('Warning: Evolved state is approaching localStorage size limit.');
+    }
+    localStorage.setItem(EVOLVED_KEY, json);
+    updateEvolvedIndicator();
+  } catch(e) { console.error('Failed to save evolved state:', e); alert('Failed to save: ' + e.message); }
+}
+
+function resetToOriginal() {
+  Object.keys(D.task_registry).forEach(k => delete D.task_registry[k]);
+  Object.assign(D.task_registry, JSON.parse(JSON.stringify(D_ORIGINAL.task_registry)));
+  D.question_registry.questions = JSON.parse(JSON.stringify(D_ORIGINAL.question_registry.questions));
+  D.question_registry.cross_cutting_questions = JSON.parse(JSON.stringify(D_ORIGINAL.question_registry.cross_cutting_questions));
+  Object.keys(D.maps).forEach(k => delete D.maps[k]);
+  Object.assign(D.maps, JSON.parse(JSON.stringify(D_ORIGINAL.maps)));
+  delete D._added_task_ids;
+  delete D._modified_task_ids;
+  localStorage.removeItem(EVOLVED_KEY);
+  buildQuestionIndex();
+  renderTabs();
+  renderStats();
+  renderMap();
+  renderPanel();
+  updateQuestionIndicators();
+  updateEvolvedIndicator();
+}
+
+function promptReset() {
+  if (confirm('Reset map to original state? All AI-generated changes will be lost.')) {
+    resetToOriginal();
+  }
+}
+
+function updateEvolvedIndicator() {
+  const badge = document.getElementById('evolvedBadge');
+  if (!badge) return;
+  const hasEvolved = localStorage.getItem(EVOLVED_KEY) !== null;
+  badge.classList.toggle('show', hasEvolved);
+}
+
+// ===== CONTEXT BUILDERS =====
+function estimateTokens(obj) {
+  const str = typeof obj === 'string' ? obj : JSON.stringify(obj);
+  return Math.ceil(str.length / 4);
+}
+
+function buildQuestionContext(qid) {
+  const q = allQs.find(x => x.id === qid);
+  if (!q) return '';
+  const resp = getResponse(qid);
+  const parts = [];
+
+  // Meta
+  parts.push('## Domain Context\n' + D.meta.subtitle + '. ' + D.meta.methodology);
+  parts.push('Personas: ' + D.meta.roles.map(r => r.id + ' (' + r.persona_name + ', ' + r.label + ') — ' + r.focus).join('; '));
+
+  // The question + response
+  parts.push('\n## Question Being Answered\nID: ' + q.id + '\nQuestion: ' + q.question +
+    '\nPriority: ' + q.priority + '\nCategory: ' + (q.category || 'General') +
+    '\n\nUser Response: ' + (resp ? resp.text : '(empty)'));
+
+  // Referenced tasks with full details
+  if (q.references && q.references.length > 0) {
+    parts.push('\n## Referenced Tasks (modify these based on the answer)');
+    q.references.forEach(ref => {
+      const task = D.task_registry[ref];
+      if (task) {
+        let taskStr = ref + ': ' + task.title + '\nRoles: ' + (task.roles || []).join(', ') + '\nDevice: ' + (task.device || 'all');
+        if (task.user_story) taskStr += '\nUser Story: ' + task.user_story.text;
+        if (task.acceptance_criteria) {
+          taskStr += '\nAcceptance Criteria:\n' + task.acceptance_criteria.map(ac => '  ' + ac.id + ': ' + ac.text).join('\n');
+        }
+        parts.push(taskStr);
+      }
+    });
+  }
+
+  // Structural context
+  parts.push('\n## Structural Context');
+  const structural = findStructuralContext(q.references || []);
+  parts.push(structural);
+
+  // Previously answered questions (compact)
+  const store = loadResponses();
+  const answered = allQs.filter(oq => oq.id !== qid && store.responses[oq.id] && store.responses[oq.id].text && store.responses[oq.id].text.trim());
+  if (answered.length > 0) {
+    parts.push('\n## Previously Answered Questions (cumulative knowledge)');
+    answered.forEach(oq => {
+      parts.push(oq.id + ': ' + oq.question + '\nAnswer: ' + store.responses[oq.id].text);
+    });
+  }
+
+  // Neighboring unanswered questions
+  const sameCategory = allQs.filter(oq => oq.id !== qid && oq.category === q.category && (!store.responses[oq.id] || !store.responses[oq.id].text));
+  if (sameCategory.length > 0) {
+    parts.push('\n## Related Unanswered Questions (same category: ' + q.category + ')');
+    sameCategory.slice(0, 5).forEach(oq => {
+      parts.push(oq.id + ': ' + oq.question + ' [refs: ' + (oq.references || []).join(', ') + ']');
+    });
+  }
+
+  return parts.join('\n');
+}
+
+function buildChatContext(userMessage) {
+  const parts = [];
+
+  // Meta
+  parts.push('## Domain Context\n' + D.meta.subtitle + '. ' + D.meta.methodology);
+  parts.push('Personas: ' + D.meta.roles.map(r => r.id + ' (' + r.persona_name + ', ' + r.label + ') — ' + r.focus).join('; '));
+
+  // Compact task registry (ID + title + roles only)
+  parts.push('\n## Full Task Registry (compact)');
+  const taskLines = Object.keys(D.task_registry).map(tid => {
+    const t = D.task_registry[tid];
+    return tid + ': ' + t.title + ' [' + (t.roles || []).join(',') + '] ' + (t.device || 'all');
+  });
+  parts.push(taskLines.join('\n'));
+
+  // Map structure (activity/step names)
+  parts.push('\n## Map Structure');
+  Object.keys(D.maps).forEach(mapKey => {
+    const m = D.maps[mapKey];
+    parts.push('Map: ' + m.label);
+    (m.activities || []).forEach(act => {
+      parts.push('  Activity: ' + act.id + ' - ' + act.title);
+      (act.steps || []).forEach(stp => {
+        const taskIds = (stp.task_refs || []).map(r => r.task_id).join(', ');
+        parts.push('    Step: ' + stp.id + ' - ' + stp.title + ' [' + taskIds + ']');
+      });
+    });
+  });
+
+  // Full details for keyword-matched tasks
+  const keywords = userMessage.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+  const matchedTasks = Object.keys(D.task_registry).filter(tid => {
+    const t = D.task_registry[tid];
+    const combined = (t.title + ' ' + (t.user_story ? t.user_story.text : '') + ' ' +
+      (t.acceptance_criteria || []).map(ac => ac.text).join(' ')).toLowerCase();
+    return keywords.some(kw => combined.includes(kw));
+  }).slice(0, 20);
+
+  if (matchedTasks.length > 0) {
+    parts.push('\n## Relevant Task Details (keyword matched)');
+    matchedTasks.forEach(tid => {
+      const t = D.task_registry[tid];
+      let s = tid + ': ' + t.title;
+      if (t.user_story) s += '\n  User Story: ' + t.user_story.text;
+      if (t.acceptance_criteria) s += '\n  ACs: ' + t.acceptance_criteria.map(ac => ac.id + ': ' + ac.text).join('\n       ');
+      parts.push(s);
+    });
+  }
+
+  // Question summary
+  parts.push('\n## Questions (compact)');
+  allQs.forEach(q => {
+    parts.push(q.id + ' [' + q.priority + '/' + (q.category || '') + ']: ' + q.question);
+  });
+
+  return parts.join('\n');
+}
+
+function findStructuralContext(refs) {
+  const lines = [];
+  Object.keys(D.maps).forEach(mapKey => {
+    const m = D.maps[mapKey];
+    (m.activities || []).forEach(act => {
+      (act.steps || []).forEach(stp => {
+        const taskIds = (stp.task_refs || []).map(r => r.task_id);
+        const overlap = refs.filter(r => taskIds.includes(r));
+        if (overlap.length > 0) {
+          lines.push('Map: ' + m.label + ' > Activity: ' + act.title + ' (' + act.id + ') > Step: ' + stp.title + ' (' + stp.id + ') contains: ' + overlap.join(', '));
+        }
+      });
+    });
+  });
+  return lines.join('\n') || 'No structural context found.';
+}
+
+// ===== API INFRASTRUCTURE =====
+function buildSystemPrompt() {
+  return `You are an AI assistant helping evolve the Estm8 user story map — a planning tool for a commercial joinery estimation, production & management platform.
+
+## Domain
+Estm8 is a SaaS platform for bespoke commercial joinery workshops. It covers estimation (reading specs, pricing jobs), production management (scheduling, tracking), and business oversight (margins, cash flow).
+
+## Personas
+- MD (Dave): Managing Director — cash flow, margins, approvals. Desktop + mobile dashboard.
+- EST (Sarah): Estimator — reads specs, prices jobs, sends quotes. Desktop.
+- PM (Tom): Production Manager — plans sequence, tracks progress. Desktop + mobile overview.
+- PS (Jake): Production Staff — logs time on phone. Needs speed, not complexity.
+
+## Rules
+1. Be conservative — only suggest changes that clearly follow from the user's input.
+2. Preserve existing acceptance criteria structure (Given/When/Then format).
+3. Use proper ID formats: TSK-XXX for tasks, US-XXX for user stories, AC-XXXx for acceptance criteria, Q-XXX for questions.
+4. For new tasks, suggest IDs starting from TSK-200 upward (to avoid collisions with existing 197 tasks).
+5. For new questions, suggest IDs starting from Q-100 upward.
+6. Return ONLY valid JSON — no markdown fences, no explanatory text outside JSON.
+7. Every change must have a clear "description" explaining what changed and why.
+
+## Response Format
+Return a JSON object with this exact structure:
+{
+  "summary": "1-2 sentence summary of all changes",
+  "changes": [
+    {
+      "type": "modify_task",
+      "target_id": "TSK-XXX",
+      "description": "What changed and why",
+      "fields": {
+        "title": "New title (optional)",
+        "user_story": { "id": "US-XXX", "text": "New story text" },
+        "acceptance_criteria": [{ "id": "AC-XXXx", "text": "Given... When... Then..." }]
+      }
+    },
+    {
+      "type": "add_task",
+      "target_step_id": "PLT-MD-STP-1.3",
+      "description": "Why this task is needed",
+      "task": {
+        "id": "TSK-200",
+        "title": "Task title",
+        "roles": ["MD"],
+        "device": "desktop",
+        "user_story": { "id": "US-200", "text": "As a..." },
+        "acceptance_criteria": [{ "id": "AC-200a", "text": "Given..." }]
+      }
+    },
+    {
+      "type": "modify_question",
+      "target_id": "Q-XXX",
+      "description": "What changed",
+      "fields": { "question": "New question text", "priority": "high", "category": "UX" }
+    },
+    {
+      "type": "add_question",
+      "description": "Why this question is needed",
+      "question": { "id": "Q-100", "question": "...", "references": ["TSK-XXX"], "priority": "medium", "category": "..." }
+    },
+    {
+      "type": "resolve_question",
+      "target_id": "Q-XXX",
+      "description": "How this was resolved by the answer"
+    },
+    {
+      "type": "modify_user_story",
+      "target_id": "TSK-XXX",
+      "description": "Why the story changed",
+      "user_story": { "id": "US-XXX", "text": "As a... I want... so that..." }
+    }
+  ],
+  "reasoning": "How the user's input drove these specific changes"
+}
+
+If no changes are needed (just answering a question), return: { "summary": "...", "changes": [], "reasoning": "..." }`;
+}
+
+async function callAnthropicAPI(systemPrompt, userMessage) {
+  const settings = loadSettings();
+  if (!settings.apiKey) throw new Error('No API key configured. Open Settings to add your Anthropic API key.');
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': settings.apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: settings.model,
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }]
+    })
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    if (res.status === 401) throw new Error('Invalid API key. Check your key in Settings.');
+    if (res.status === 429) throw new Error('Rate limited. Please wait a moment and try again.');
+    if (res.status === 529) throw new Error('Anthropic API is overloaded. Try again shortly.');
+    throw new Error('API error (' + res.status + '): ' + body);
+  }
+
+  const data = await res.json();
+  const textBlock = data.content.find(b => b.type === 'text');
+  if (!textBlock) throw new Error('No text response from API.');
+  return textBlock.text;
+}
+
+function parseAIResponse(text) {
+  // Strip markdown fences if present
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch(e) {
+    // Try to find JSON object in the text
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) {
+      try { parsed = JSON.parse(match[0]); } catch(e2) {
+        throw new Error('Could not parse AI response as JSON. Response started with: ' + cleaned.substring(0, 200));
+      }
+    } else {
+      throw new Error('No JSON found in AI response.');
+    }
+  }
+
+  if (!parsed.changes || !Array.isArray(parsed.changes)) {
+    throw new Error('Invalid response structure: missing "changes" array.');
+  }
+
+  return parsed;
+}
+
+function validateAndFixIds(changeset) {
+  const existingTaskIds = new Set(Object.keys(D.task_registry));
+  const existingQIds = new Set(allQs.map(q => q.id));
+  let nextTaskNum = 200;
+  let nextQNum = 100;
+
+  // Find max existing IDs
+  existingTaskIds.forEach(id => {
+    const n = parseInt(id.replace('TSK-', ''));
+    if (n >= nextTaskNum) nextTaskNum = n + 1;
+  });
+  existingQIds.forEach(id => {
+    const n = parseInt(id.replace(/^(Q|CQ)-/, ''));
+    if (n >= nextQNum) nextQNum = n + 1;
+  });
+
+  changeset.changes.forEach(change => {
+    if (change.type === 'add_task' && change.task) {
+      if (!change.task.id || existingTaskIds.has(change.task.id)) {
+        change.task.id = 'TSK-' + String(nextTaskNum).padStart(3, '0');
+        nextTaskNum++;
+      }
+      existingTaskIds.add(change.task.id);
+      // Fix user story ID
+      if (change.task.user_story) {
+        change.task.user_story.id = 'US-' + change.task.id.replace('TSK-', '');
+      }
+      // Fix AC IDs
+      if (change.task.acceptance_criteria) {
+        change.task.acceptance_criteria.forEach((ac, i) => {
+          ac.id = 'AC-' + change.task.id.replace('TSK-', '') + String.fromCharCode(97 + i);
+        });
+      }
+    }
+    if (change.type === 'add_question' && change.question) {
+      if (!change.question.id || existingQIds.has(change.question.id)) {
+        change.question.id = 'Q-' + String(nextQNum).padStart(3, '0');
+        nextQNum++;
+      }
+      existingQIds.add(change.question.id);
+    }
+  });
+
+  return changeset;
+}
+
+// ===== REVIEW PANEL =====
+function showReview(changeset) {
+  currentChangeset = changeset;
+  changeDecisions = changeset.changes.map(() => 'pending');
+
+  document.getElementById('reviewSummary').textContent = changeset.summary || '';
+  if (changeset.reasoning) {
+    document.getElementById('reviewSummary').textContent += '\n\nReasoning: ' + changeset.reasoning;
+  }
+
+  renderReviewCards();
+  updateReviewCount();
+  document.getElementById('reviewBg').classList.add('open');
+}
+
+function renderReviewCards() {
+  const container = document.getElementById('reviewCards');
+  let html = '';
+
+  currentChangeset.changes.forEach((change, i) => {
+    const typeInfo = formatChangeType(change.type);
+    const stateClass = changeDecisions[i] !== 'pending' ? changeDecisions[i] : '';
+    const acceptActive = changeDecisions[i] === 'accepted' ? 'active' : '';
+    const rejectActive = changeDecisions[i] === 'rejected' ? 'active' : '';
+
+    html += '<div class="review-card ' + stateClass + '" id="rc-' + i + '">' +
+      '<div class="review-card-hdr" onclick="toggleReviewCard(' + i + ')">' +
+        '<div class="review-type-icon ' + typeInfo.cls + '">' + typeInfo.icon + '</div>' +
+        '<div class="review-card-info">' +
+          '<div class="review-card-type">' + typeInfo.label + (change.target_id ? ' — ' + change.target_id : '') + '</div>' +
+          '<div class="review-card-desc">' + escapeHtml(change.description || '') + '</div>' +
+        '</div>' +
+        '<div class="review-card-btns">' +
+          '<button class="btn-accept ' + acceptActive + '" onclick="event.stopPropagation();decideChange(' + i + ',\'accepted\')" title="Accept">&#10003;</button>' +
+          '<button class="btn-reject ' + rejectActive + '" onclick="event.stopPropagation();decideChange(' + i + ',\'rejected\')" title="Reject">&#10007;</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="review-card-body">' + renderChangeDiff(change) + '</div>' +
+    '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function formatChangeType(type) {
+  const map = {
+    'modify_task':       { icon: '&#9998;', label: 'Modify Task', cls: 'modify' },
+    'add_task':          { icon: '&#43;',   label: 'Add Task', cls: 'add' },
+    'modify_question':   { icon: '&#9998;', label: 'Modify Question', cls: 'modify' },
+    'add_question':      { icon: '&#43;',   label: 'Add Question', cls: 'add' },
+    'resolve_question':  { icon: '&#10003;',label: 'Resolve Question', cls: 'resolve' },
+    'modify_user_story': { icon: '&#9998;', label: 'Modify User Story', cls: 'modify' }
+  };
+  return map[type] || { icon: '?', label: type, cls: 'modify' };
+}
+
+function renderChangeDiff(change) {
+  let html = '<div class="review-diff">';
+
+  if (change.type === 'modify_task' && change.target_id) {
+    const existing = D.task_registry[change.target_id];
+    if (existing && change.fields) {
+      if (change.fields.title && change.fields.title !== existing.title) {
+        html += '<div class="diff-label">Title</div>';
+        html += '<div class="diff-del">' + escapeHtml(existing.title) + '</div>';
+        html += '<div class="diff-add">' + escapeHtml(change.fields.title) + '</div>';
+      }
+      if (change.fields.acceptance_criteria) {
+        html += '<div class="diff-label">Acceptance Criteria</div>';
+        if (existing.acceptance_criteria) {
+          existing.acceptance_criteria.forEach(ac => {
+            html += '<div class="diff-del">' + escapeHtml(ac.id + ': ' + ac.text) + '</div>';
+          });
+        }
+        change.fields.acceptance_criteria.forEach(ac => {
+          html += '<div class="diff-add">' + escapeHtml(ac.id + ': ' + ac.text) + '</div>';
+        });
+      }
+      if (change.fields.user_story) {
+        html += '<div class="diff-label">User Story</div>';
+        if (existing.user_story) html += '<div class="diff-del">' + escapeHtml(existing.user_story.text) + '</div>';
+        html += '<div class="diff-add">' + escapeHtml(change.fields.user_story.text) + '</div>';
+      }
+    }
+  } else if (change.type === 'add_task' && change.task) {
+    html += '<div class="diff-label">New Task: ' + escapeHtml(change.task.id) + '</div>';
+    html += '<div class="diff-add">' + escapeHtml(change.task.title) + '</div>';
+    if (change.task.user_story) html += '<div class="diff-add" style="margin-top:4px">Story: ' + escapeHtml(change.task.user_story.text) + '</div>';
+    if (change.task.acceptance_criteria) {
+      change.task.acceptance_criteria.forEach(ac => {
+        html += '<div class="diff-add">' + escapeHtml(ac.id + ': ' + ac.text) + '</div>';
+      });
+    }
+    html += '<div style="margin-top:4px;font-size:9px;color:var(--text-2)">Target step: ' + escapeHtml(change.target_step_id || 'auto') + '</div>';
+  } else if (change.type === 'modify_question' && change.target_id) {
+    const existing = allQs.find(q => q.id === change.target_id);
+    if (existing && change.fields) {
+      if (change.fields.question) {
+        html += '<div class="diff-label">Question</div>';
+        html += '<div class="diff-del">' + escapeHtml(existing.question) + '</div>';
+        html += '<div class="diff-add">' + escapeHtml(change.fields.question) + '</div>';
+      }
+      if (change.fields.priority) html += '<div class="diff-add">Priority: ' + change.fields.priority + '</div>';
+    }
+  } else if (change.type === 'add_question' && change.question) {
+    html += '<div class="diff-label">New Question: ' + escapeHtml(change.question.id) + '</div>';
+    html += '<div class="diff-add">' + escapeHtml(change.question.question) + '</div>';
+    html += '<div style="margin-top:4px;font-size:9px;color:var(--text-2)">Refs: ' + (change.question.references || []).join(', ') + '</div>';
+  } else if (change.type === 'resolve_question' && change.target_id) {
+    const existing = allQs.find(q => q.id === change.target_id);
+    if (existing) {
+      html += '<div class="diff-label">Question</div>';
+      html += '<div>' + escapeHtml(existing.question) + '</div>';
+      html += '<div class="diff-add" style="margin-top:4px">Marking as resolved</div>';
+    }
+  } else if (change.type === 'modify_user_story' && change.target_id) {
+    const existing = D.task_registry[change.target_id];
+    if (existing && change.user_story) {
+      html += '<div class="diff-label">User Story for ' + change.target_id + '</div>';
+      if (existing.user_story) html += '<div class="diff-del">' + escapeHtml(existing.user_story.text) + '</div>';
+      html += '<div class="diff-add">' + escapeHtml(change.user_story.text) + '</div>';
+    }
+  } else {
+    html += '<div>' + escapeHtml(JSON.stringify(change, null, 2)) + '</div>';
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function toggleReviewCard(index) {
+  const el = document.getElementById('rc-' + index);
+  if (el) el.classList.toggle('expanded');
+}
+
+function decideChange(index, decision) {
+  changeDecisions[index] = changeDecisions[index] === decision ? 'pending' : decision;
+  renderReviewCards();
+  updateReviewCount();
+}
+
+function acceptAllChanges() {
+  changeDecisions = changeDecisions.map(() => 'accepted');
+  renderReviewCards();
+  updateReviewCount();
+}
+
+function rejectAllChanges() {
+  changeDecisions = changeDecisions.map(() => 'rejected');
+  renderReviewCards();
+  updateReviewCount();
+}
+
+function updateReviewCount() {
+  const a = changeDecisions.filter(d => d === 'accepted').length;
+  const r = changeDecisions.filter(d => d === 'rejected').length;
+  const p = changeDecisions.filter(d => d === 'pending').length;
+  document.getElementById('reviewCount').textContent = a + ' accepted, ' + r + ' rejected, ' + p + ' pending';
+  document.getElementById('reviewApplyBtn').disabled = a === 0;
+}
+
+function closeReview() {
+  document.getElementById('reviewBg').classList.remove('open');
+  currentChangeset = null;
+  changeDecisions = [];
+}
+
+function applyAcceptedChanges() {
+  if (!currentChangeset) return;
+  const accepted = currentChangeset.changes.filter((_, i) => changeDecisions[i] === 'accepted');
+  if (accepted.length === 0) { closeReview(); return; }
+
+  if (!D._modified_task_ids) D._modified_task_ids = [];
+  if (!D._added_task_ids) D._added_task_ids = [];
+
+  accepted.forEach(change => {
+    try {
+      switch(change.type) {
+        case 'modify_task':       applyModifyTask(change); break;
+        case 'add_task':          applyAddTask(change); break;
+        case 'modify_question':   applyModifyQuestion(change); break;
+        case 'add_question':      applyAddQuestion(change); break;
+        case 'resolve_question':  applyResolveQuestion(change); break;
+        case 'modify_user_story': applyModifyUserStory(change); break;
+      }
+    } catch(e) { console.error('Failed to apply change:', change, e); }
+  });
+
+  saveEvolvedState();
+  buildQuestionIndex();
+  renderTabs();
+  renderStats();
+  renderMap();
+  renderPanel();
+  updateQuestionIndicators();
+  closeReview();
+
+  // Flash modified cards
+  setTimeout(() => {
+    D._modified_task_ids.forEach(tid => {
+      const el = document.getElementById('c-' + tid);
+      if (el) { el.classList.add('flash'); el.classList.add('ai-modified'); }
+    });
+    D._added_task_ids.forEach(tid => {
+      const el = document.getElementById('c-' + tid);
+      if (el) { el.classList.add('flash'); el.classList.add('ai-added'); }
+    });
+  }, 100);
+}
+
+// ===== CHANGE APPLIER =====
+function applyModifyTask(change) {
+  const task = D.task_registry[change.target_id];
+  if (!task) return;
+  if (change.fields.title) task.title = change.fields.title;
+  if (change.fields.user_story) task.user_story = change.fields.user_story;
+  if (change.fields.acceptance_criteria) task.acceptance_criteria = change.fields.acceptance_criteria;
+  if (change.fields.roles) task.roles = change.fields.roles;
+  if (change.fields.device) task.device = change.fields.device;
+  if (!D._modified_task_ids.includes(change.target_id)) D._modified_task_ids.push(change.target_id);
+}
+
+function applyAddTask(change) {
+  const task = change.task;
+  D.task_registry[task.id] = {
+    title: task.title,
+    roles: task.roles || [],
+    device: task.device || 'all',
+    user_story: task.user_story || null,
+    acceptance_criteria: task.acceptance_criteria || []
+  };
+
+  // Add task_ref to target step in all maps
+  if (change.target_step_id) {
+    Object.keys(D.maps).forEach(mapKey => {
+      const m = D.maps[mapKey];
+      (m.activities || []).forEach(act => {
+        (act.steps || []).forEach(stp => {
+          if (stp.id === change.target_step_id) {
+            if (!stp.task_refs) stp.task_refs = [];
+            stp.task_refs.push({ task_id: task.id, role_in_journey: 'owner' });
+          }
+        });
+      });
+    });
+  }
+
+  if (!D._added_task_ids.includes(task.id)) D._added_task_ids.push(task.id);
+}
+
+function applyModifyQuestion(change) {
+  const q = allQs.find(x => x.id === change.target_id);
+  if (!q) return;
+  if (change.fields.question) q.question = change.fields.question;
+  if (change.fields.priority) q.priority = change.fields.priority;
+  if (change.fields.category) q.category = change.fields.category;
+  if (change.fields.references) q.references = change.fields.references;
+}
+
+function applyAddQuestion(change) {
+  const q = change.question;
+  if (q.id && q.id.startsWith('CQ')) {
+    D.question_registry.cross_cutting_questions.push(q);
+  } else {
+    D.question_registry.questions.push(q);
+  }
+}
+
+function applyResolveQuestion(change) {
+  saveResponse(change.target_id, '[Resolved by AI] ' + (change.description || 'Resolved based on provided context.'));
+}
+
+function applyModifyUserStory(change) {
+  const task = D.task_registry[change.target_id];
+  if (!task) return;
+  task.user_story = change.user_story;
+  if (!D._modified_task_ids.includes(change.target_id)) D._modified_task_ids.push(change.target_id);
+}
+
+// ===== EVOLVE FLOW =====
+function updateEvolveButton() {
+  const btn = document.getElementById('evolveBtn');
+  const cost = document.getElementById('evolveCost');
+  if (!btn) return;
+  const settings = loadSettings();
+  const hasKey = !!(settings.apiKey);
+  const resp = document.getElementById('responseText');
+  const hasResponse = resp && resp.value && resp.value.trim().length >= 10;
+  const ready = hasKey && hasResponse;
+  btn.classList.toggle('not-ready', !ready);
+
+  if (ready && currentModalQid) {
+    const ctx = buildQuestionContext(currentModalQid);
+    const tokens = estimateTokens(ctx);
+    cost.textContent = '~' + Math.round(tokens / 1000) + 'K input tokens';
+  } else if (!hasKey) {
+    cost.textContent = 'Set API key in Settings first';
+  } else if (!hasResponse) {
+    cost.textContent = 'Type a response above (10+ chars)';
+  } else {
+    cost.textContent = '';
+  }
+}
+
+async function evolveMap() {
+  const settings = loadSettings();
+  if (!settings.apiKey) {
+    if (confirm('No API key configured. Open Settings now?')) openSettings();
+    return;
+  }
+  const resp = document.getElementById('responseText');
+  if (!resp || !resp.value || resp.value.trim().length < 10) {
+    alert('Please type a response to the question first (at least 10 characters), then click Evolve Map.');
+    return;
+  }
+  if (!currentModalQid) return;
+
+  const btn = document.getElementById('evolveBtn');
+  btn.classList.add('loading');
+
+  try {
+    const context = buildQuestionContext(currentModalQid);
+    const systemPrompt = buildSystemPrompt();
+    const userMessage = 'The user has answered a question about the story map. Based on their answer, suggest specific changes to the referenced tasks and stories.\n\n' + context;
+
+    const responseText = await callAnthropicAPI(systemPrompt, userMessage);
+    let changeset = parseAIResponse(responseText);
+    changeset = validateAndFixIds(changeset);
+
+    if (changeset.changes.length === 0) {
+      alert('AI Analysis: ' + (changeset.summary || 'No changes needed based on this response.'));
+    } else {
+      closeModal();
+      showReview(changeset);
+    }
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.classList.remove('loading');
+    updateEvolveButton();
+  }
+}
+
+// ===== CHAT ASSISTANT =====
+function toggleChat() {
+  if (chatOpen) closeChat(); else openChat();
+}
+
+function openChat() {
+  chatOpen = true;
+  loadChatHistory();
+  renderChatMessages();
+  document.getElementById('chatPanel').classList.add('open');
+  document.getElementById('btnChat').classList.add('on');
+  setTimeout(() => document.getElementById('chatInput').focus(), 300);
+}
+
+function closeChat() {
+  chatOpen = false;
+  document.getElementById('chatPanel').classList.remove('open');
+  document.getElementById('btnChat').classList.remove('on');
+}
+
+function loadChatHistory() {
+  try {
+    const raw = localStorage.getItem(CHAT_KEY);
+    if (raw) chatHistory = JSON.parse(raw);
+    else chatHistory = [];
+  } catch(e) { chatHistory = []; }
+}
+
+function saveChatHistory() {
+  try {
+    localStorage.setItem(CHAT_KEY, JSON.stringify(chatHistory.slice(-50)));
+  } catch(e) {}
+}
+
+function clearChat() {
+  if (!confirm('Clear chat history?')) return;
+  chatHistory = [];
+  localStorage.removeItem(CHAT_KEY);
+  renderChatMessages();
+}
+
+function renderChatMessages() {
+  const container = document.getElementById('chatMessages');
+  if (chatHistory.length === 0) {
+    container.innerHTML = '<div class="chat-empty"><div class="chat-empty-icon">&#128172;</div><div>Ask me to make changes across the map.<br>e.g. "Add a new acceptance criterion to TSK-1.1.1"</div></div>';
+    return;
+  }
+
+  let html = '';
+  chatHistory.forEach((msg, i) => {
+    html += '<div class="chat-msg ' + msg.role + '">';
+    html += escapeHtml(msg.text);
+    if (msg.role === 'ai' && msg.changeset && msg.changeset.changes && msg.changeset.changes.length > 0) {
+      html += '<br><button class="chat-review-btn" onclick="showReview(chatHistory[' + i + '].changeset)">Review ' + msg.changeset.changes.length + ' changes</button>';
+    }
+    html += '</div>';
+  });
+  container.innerHTML = html;
+  container.scrollTop = container.scrollHeight;
+}
+
+function chatKeyDown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChatMessage();
+  }
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const settings = loadSettings();
+  if (!settings.apiKey) {
+    alert('No API key configured. Open Settings to add your Anthropic API key.');
+    return;
+  }
+
+  // Add user message
+  chatHistory.push({ role: 'user', text: text });
+  input.value = '';
+  renderChatMessages();
+
+  // Show typing indicator
+  const container = document.getElementById('chatMessages');
+  const typing = document.createElement('div');
+  typing.className = 'chat-typing';
+  typing.innerHTML = '<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>';
+  container.appendChild(typing);
+  container.scrollTop = container.scrollHeight;
+
+  // Disable send button
+  document.getElementById('chatSendBtn').disabled = true;
+
+  try {
+    const systemPrompt = buildSystemPrompt() + '\n\nYou are a conversational assistant. The user may ask questions about the map or request changes.\n' +
+      'If changes are needed, return the standard JSON changeset.\n' +
+      'If it\'s just a question or conversation, return { "summary": "your answer", "changes": [], "reasoning": "" }\n' +
+      'For broad changes (e.g. "change all X to Y"), scan the compact task list to identify ALL affected tasks.\n' +
+      'Always return valid JSON only.';
+
+    // Build context with chat history
+    const chatContext = buildChatContext(text);
+    let userMessage = chatContext + '\n\n## Chat History (last 10)\n';
+    chatHistory.slice(-11, -1).forEach(msg => {
+      userMessage += (msg.role === 'user' ? 'User' : 'Assistant') + ': ' + msg.text.substring(0, 500) + '\n';
+    });
+    userMessage += '\n## Current User Message\n' + text;
+
+    const responseText = await callAnthropicAPI(systemPrompt, userMessage);
+    let changeset = parseAIResponse(responseText);
+    changeset = validateAndFixIds(changeset);
+
+    // Add AI response
+    chatHistory.push({
+      role: 'ai',
+      text: changeset.summary || 'Done.',
+      changeset: changeset.changes.length > 0 ? changeset : null
+    });
+
+  } catch(e) {
+    chatHistory.push({ role: 'ai', text: 'Error: ' + e.message, changeset: null });
+  } finally {
+    if (typing.parentNode) typing.remove();
+    document.getElementById('chatSendBtn').disabled = false;
+    saveChatHistory();
+    renderChatMessages();
+  }
+}
+
+function loadResponses() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { responses: {} };
+}
+
+function saveResponse(qid, text) {
+  const store = loadResponses();
+  store.responses[qid] = {
+    text: text,
+    updatedAt: new Date().toISOString(),
+    status: text.trim() ? 'answered' : 'empty'
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+}
+
+function getResponse(qid) {
+  const store = loadResponses();
+  return store.responses[qid] || null;
+}
+
+function saveCurrentResponse() {
+  if (!currentModalQid) return;
+  const text = document.getElementById('responseText').value;
+  saveResponse(currentModalQid, text);
+  updateResponseStatus('saved');
+  updateQuestionIndicators();
+  renderStats();
+}
+
+function debounceSaveResponse() {
+  updateResponseStatus('saving');
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(saveCurrentResponse, 1000);
+  updateEvolveButton();
+}
+
+function updateResponseStatus(status) {
+  const el = document.getElementById('responseStatus');
+  if (status === 'saved') {
+    el.textContent = 'Saved';
+    el.className = 'response-status saved';
+  } else if (status === 'saving') {
+    el.textContent = 'Saving...';
+    el.className = 'response-status saving';
+  } else {
+    el.textContent = '';
+    el.className = 'response-status';
+  }
+}
+
+// ---- Question index ----
+let allQs = [], qByRef = {};
+
+function buildQuestionIndex() {
+  allQs = [];
+  qByRef = {};
+  const qs = D.question_registry ? D.question_registry.questions : (D.questions || []);
+  const cqs = D.question_registry ? D.question_registry.cross_cutting_questions : (D.cross_cutting_questions || []);
+  allQs = [...qs, ...cqs];
+  allQs.forEach(q => {
+    (q.references || []).forEach(ref => {
+      if (!qByRef[ref]) qByRef[ref] = [];
+      qByRef[ref].push(q);
+    });
+  });
+}
+
+// ---- Get current map definition ----
+function getCurrentMapDef() {
+  if (!D.maps) return null;
+  return D.maps[currentMap];
+}
+
+function getMapActivities() {
+  const mapDef = getCurrentMapDef();
+  if (!mapDef) return [];
+  return mapDef.activities || [];
+}
+
+// Get all task IDs in the current map
+function getMapTaskIds() {
+  const acts = getMapActivities();
+  const ids = new Set();
+  acts.forEach(a => {
+    (a.steps || []).forEach(s => {
+      (s.task_refs || []).forEach(tr => ids.add(tr.task_id));
+      // Also support legacy inline tasks
+      (s.tasks || []).forEach(t => ids.add(t.id));
+    });
+  });
+  return ids;
+}
+
+// Count questions relevant to current map
+function getMapQuestions() {
+  const taskIds = getMapTaskIds();
+  const qs = D.question_registry ? D.question_registry.questions : (D.questions || []);
+  if (currentMap === 'platform') return qs;
+  return qs.filter(q => (q.references || []).some(ref => taskIds.has(ref)));
+}
+
+// Get source_activity_ids for current map (for CC question scoping)
+function getMapSourceActivityIds() {
+  const acts = getMapActivities();
+  const ids = new Set();
+  acts.forEach(a => {
+    (a.source_activity_ids || []).forEach(id => ids.add(id));
+  });
+  return ids;
+}
+
+// Get CC questions relevant to current map
+function getMapCCQuestions() {
+  const cqs = D.question_registry ? D.question_registry.cross_cutting_questions : (D.cross_cutting_questions || []);
+  if (currentMap === 'platform') return cqs;
+  const taskIds = getMapTaskIds();
+  const actIds = getMapSourceActivityIds();
+  return cqs.filter(q => (q.references || []).some(ref => taskIds.has(ref) || actIds.has(ref)));
+}
+
+function getAnsweredCount() {
+  const mapQs = getMapQuestions();
+  const mapCCQs = getMapCCQuestions();
+  const allMapQs = [...mapQs, ...mapCCQs];
+  let answered = 0;
+  allMapQs.forEach(q => {
+    const resp = getResponse(q.id);
+    if (resp && resp.text && resp.text.trim()) answered++;
+  });
+  return { answered, total: allMapQs.length };
+}
+
+function countQsForActivity(act) {
+  let n = 0;
+  const taskIds = new Set();
+  (act.steps || []).forEach(s => {
+    (s.task_refs || []).forEach(tr => taskIds.add(tr.task_id));
+    (s.tasks || []).forEach(t => taskIds.add(t.id));
+  });
+  // Count questions referencing these tasks or the activity itself
+  if (qByRef[act.id]) n += qByRef[act.id].length;
+  taskIds.forEach(tid => {
+    if (qByRef[tid]) n += qByRef[tid].length;
+  });
+  // Also check source_activity_ids
+  (act.source_activity_ids || []).forEach(said => {
+    if (qByRef[said]) n += qByRef[said].length;
+  });
+  return n;
+}
+
+// ---- Device badge ----
+function deviceLabel(d) {
+  if (d === 'desktop') return 'Desktop';
+  if (d === 'mobile') return 'Mobile';
+  return 'All';
+}
+
+// ---- Get persona color ----
+function personaColor(pid) {
+  const colors = { MD: 'var(--md-color)', EST: 'var(--est-color)', PM: 'var(--pm-color)', PS: 'var(--ps-color)' };
+  return colors[pid] || '#888';
+}
+
+// ---- Render tabs ----
+function renderTabs() {
+  const maps = D.maps || {};
+  let h = '';
+  const order = ['platform', 'MD', 'EST', 'PM', 'PS'];
+  const labels = { platform: 'Platform', MD: 'MD', EST: 'Estimator', PM: 'Prod Manager', PS: 'Prod Staff' };
+
+  order.forEach(key => {
+    if (!maps[key]) return;
+    const m = maps[key];
+    const active = currentMap === key ? ' active' : '';
+    const taskCount = m.task_count || 0;
+    const dotColor = key === 'platform' ? '#ff8a65' : personaColor(key);
+
+    h += `<button class="map-tab${active}" data-map="${key}" onclick="switchMap('${key}')">`;
+    if (key !== 'platform') h += `<span class="tab-dot" style="background:${dotColor}"></span>`;
+    h += `${labels[key] || key}`;
+    if (taskCount) h += ` <span class="tab-count">${taskCount}</span>`;
+    h += `</button>`;
+  });
+
+  document.getElementById('mapTabs').innerHTML = h;
+}
+
+// ---- Render legend ----
+function renderLegend() {
+  const isPersonaMap = currentMap !== 'platform';
+  let h = '';
+  h += `<strong style="color:var(--text)">Legend:</strong>`;
+  h += `<div class="leg-item"><div class="leg-sw" style="background:#1a1a2e"></div>Activity</div>`;
+  h += `<div class="leg-item"><div class="leg-sw" style="background:#e65100"></div>Step</div>`;
+  h += `<div class="leg-item"><div class="leg-sw" style="background:#fff;border:1px solid #e2e5e9"></div>Task</div>`;
+  h += `<div class="leg-item"><div class="leg-sw" style="background:#fffbeb;border:1px solid #f59e0b"></div>Question</div>`;
+  h += `<div class="leg-item"><div class="leg-sw" style="background:#fef2f2;border:1px solid #ef4444"></div>Cross-Cutting</div>`;
+
+  if (isPersonaMap) {
+    h += `<div class="leg-sep"></div>`;
+    h += `<div class="leg-item"><div class="leg-sw" style="background:#fafafa;border:2px dashed #d1d5db"></div>Handoff</div>`;
+  }
+
+  // No persona legend for Chivo 2.0
+
+  document.getElementById('legend').innerHTML = h;
+}
+
+// ---- Render stats ----
+function renderStats() {
+  const acts = getMapActivities();
+  let steps = 0, tasks = 0, acs = 0;
+
+  acts.forEach(a => (a.steps || []).forEach(s => {
+    steps++;
+    // Count task_refs
+    (s.task_refs || []).forEach(tr => {
+      tasks++;
+      const tsk = D.task_registry ? D.task_registry[tr.task_id] : null;
+      if (tsk && tsk.acceptance_criteria) acs += tsk.acceptance_criteria.length;
+    });
+    // Legacy inline tasks
+    (s.tasks || []).forEach(t => {
+      tasks++;
+      if (t.acceptance_criteria) acs += t.acceptance_criteria.length;
+    });
+  }));
+
+  const mapQs = getMapQuestions();
+  const cqs = getMapCCQuestions();
+  const progress = getAnsweredCount();
+
+  let filterNote = '';
+  if (activeRoleFilter && currentMap === 'platform') {
+    let shown = 0;
+    acts.forEach(a => (a.steps || []).forEach(s => {
+      (s.task_refs || []).forEach(tr => {
+        const tsk = D.task_registry ? D.task_registry[tr.task_id] : null;
+        if (tsk && tsk.roles && tsk.roles.includes(activeRoleFilter)) shown++;
+      });
+      (s.tasks || []).forEach(t => {
+        if (t.roles && t.roles.includes(activeRoleFilter)) shown++;
+      });
+    }));
+    filterNote = `<div class="stat"><div class="stat-n" style="color:#ff8a65">${shown}/${tasks}</div><div class="stat-l">Filtered</div></div>`;
+  }
+
+  let progressHTML = '';
+  if (progress.total > 0) {
+    const pct = Math.round((progress.answered / progress.total) * 100);
+    progressHTML = `<div class="answer-progress"><span>${progress.answered}/${progress.total}</span><div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div><span style="font-size:9px;opacity:.6">Answered</span></div>`;
+  }
+
+  document.getElementById('stats').innerHTML =
+    `<div class="stat"><div class="stat-n">${acts.length}</div><div class="stat-l">Activities</div></div>` +
+    `<div class="stat"><div class="stat-n">${steps}</div><div class="stat-l">Steps</div></div>` +
+    `<div class="stat"><div class="stat-n">${tasks}</div><div class="stat-l">Tasks</div></div>` +
+    `<div class="stat"><div class="stat-n">${acs}</div><div class="stat-l">ACs</div></div>` +
+    `<div class="stat"><div class="stat-n">${mapQs.length}</div><div class="stat-l">Questions</div></div>` +
+    `<div class="stat"><div class="stat-n">${cqs.length}</div><div class="stat-l">Cross-Cut</div></div>` +
+    progressHTML +
+    filterNote;
+}
+
+// ---- Render a task card ----
+function renderTaskCard(tsk, taskId, ref) {
+  const isHandoff = ref && ref.role_in_journey === 'handoff';
+  const isShared = ref && ref.role_in_journey === 'shared';
+
+  const qs = qByRef[taskId] || [];
+  const roles = tsk.roles || [];
+  const rolesAttr = roles.join(',');
+  const device = tsk.device || 'all';
+
+  let cls = 'card';
+  if (isHandoff) cls += ' card-handoff';
+
+  let h = `<div class="${cls}" data-tsk="${taskId}" data-roles="${rolesAttr}" data-device="${device}" id="c-${taskId}" onclick="toggle(this)">`;
+  h += `<div class="card-top">`;
+
+  // Row 1: Badges
+  h += `<div class="card-badges">`;
+  h += `<span class="card-id">${taskId}</span>`;
+  roles.forEach(r => { h += `<span class="role-badge ${r}">${r}</span>`; });
+
+  // Handoff badge
+  if (isHandoff && ref.handoff_label) {
+    const ownerRole = roles[0] || '';
+    h += `<span class="handoff-badge"><span class="handoff-arrow">&#8644;</span>`;
+    if (ownerRole) h += `<span class="handoff-dot" style="background:${personaColor(ownerRole)}"></span>`;
+    h += `${ref.handoff_label}</span>`;
+  }
+
+  // Shared badge
+  if (isShared) {
+    h += `<span class="handoff-badge" style="background:#e0e7ff;color:#3730a3"><span class="handoff-arrow">&#8860;</span>Shared</span>`;
+  }
+
+  // Device badge
+  h += `<span class="device-badge ${device}">${deviceLabel(device)}</span>`;
+  h += `</div>`;
+
+  // Row 2: Title + chevron
+  h += `<div class="card-title-row">`;
+  h += `<span class="card-title">${tsk.title}</span>`;
+  h += `<span class="card-chevron">&#9662;</span>`;
+  h += `</div>`;
+
+  h += `</div>`;
+
+  // Card body (always rendered, hidden until clicked)
+  h += `<div class="card-body">`;
+
+  if (tsk.user_story) {
+    h += `<div class="us"><div class="us-lbl">${tsk.user_story.id} &mdash; User Story</div><div class="us-txt">${tsk.user_story.text}</div>`;
+    if (tsk.acceptance_criteria && tsk.acceptance_criteria.length) {
+      h += `<ul class="ac-list">`;
+      tsk.acceptance_criteria.forEach(ac => {
+        h += `<li class="ac-item"><span class="ac-chk">&#10003;</span><span class="ac-id">${ac.id}</span><span>${ac.text}</span></li>`;
+      });
+      h += `</ul>`;
+    }
+    h += `</div>`;
+  }
+
+  if (qs.length) {
+    h += `<div class="q-sec"><div class="q-sec-lbl">&#9888; Open Questions (${qs.length})</div>`;
+    qs.forEach(q => {
+      const resp = getResponse(q.id);
+      const answeredClass = (resp && resp.text && resp.text.trim()) ? ' answered' : '';
+      h += `<div class="q-pill${answeredClass}" onclick="event.stopPropagation();openModal('${q.id}')" data-qid="${q.id}">`;
+      if (answeredClass) h += `<span class="q-answered-check">&#10003;</span>`;
+      h += `<span class="qid">${q.id}</span>`;
+      h += `<span class="q-pri ${q.priority}">${q.priority}</span>`;
+      h += `<span>${q.question}</span></div>`;
+    });
+    h += `</div>`;
+  }
+
+  h += `</div>`;
+
+  h += `</div>`;
+  return h;
+}
+
+// ---- Render the grid-based story map ----
+function renderMap() {
+  const acts = getMapActivities();
+  if (!acts.length) {
+    document.getElementById('map').innerHTML = '<p style="padding:40px;color:var(--text-2)">No map data available.</p>';
+    return;
+  }
+
+  const colTemplate = acts.map(a =>
+    (a.steps || []).map(() => 'minmax(280px, 1fr)').join(' ')
+  ).join(' ');
+
+  let h = `<div class="story-grid" style="grid-template-columns: ${colTemplate}; grid-template-rows: auto auto 1fr;">`;
+
+  // ROW 1: Activity headers
+  let colPos = 1;
+  acts.forEach(act => {
+    const steps = act.steps || [];
+    const span = steps.length || 1;
+    const qn = countQsForActivity(act);
+
+    // Determine personas for this activity
+    let personas = [];
+    if (currentMap === 'platform') {
+      // Platform: derive from task roles
+      const roleSet = new Set();
+      steps.forEach(s => {
+        (s.task_refs || []).forEach(tr => {
+          const tsk = D.task_registry ? D.task_registry[tr.task_id] : null;
+          if (tsk) (tsk.roles || []).forEach(r => roleSet.add(r));
+        });
+        (s.tasks || []).forEach(t => (t.roles || []).forEach(r => roleSet.add(r)));
+      });
+      personas = ['MD','EST','PM','PS'].filter(r => roleSet.has(r));
+    } else {
+      personas = [currentMap];
+    }
+
+    h += `<div class="act-cell" data-act="${act.id}" style="grid-row:1; grid-column:${colPos}/span ${span};" title="${act.description || ''}">`;
+    h += `<div style="flex:1;min-width:0"><span class="id-tag">${act.id}</span>${act.title}</div>`;
+    h += `<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">`;
+    h += `<span class="act-personas">`;
+    personas.forEach(p => { h += `<span class="act-role-pill ${p}">${p}</span>`; });
+    h += `</span>`;
+    if (qn) h += `<span class="act-q-badge" onclick="scrollFirstQ('${act.id}')">${qn} ?</span>`;
+    h += `</div></div>`;
+    colPos += span;
+  });
+
+  // ROW 2: Step headers
+  colPos = 1;
+  acts.forEach(act => {
+    (act.steps || []).forEach(stp => {
+      // Determine border persona
+      let borderPersona = currentMap !== 'platform' ? currentMap : '';
+      if (!borderPersona) {
+        // Platform: derive from first task
+        const firstRef = (stp.task_refs || [])[0];
+        const firstTask = (stp.tasks || [])[0];
+        if (firstRef) {
+          const tsk = D.task_registry ? D.task_registry[firstRef.task_id] : null;
+          if (tsk && tsk.roles && tsk.roles[0]) borderPersona = tsk.roles[0];
+        } else if (firstTask && firstTask.roles && firstTask.roles[0]) {
+          borderPersona = firstTask.roles[0];
+        }
+      }
+      const borderClass = borderPersona ? ` persona-${borderPersona}` : '';
+      h += `<div class="stp-cell${borderClass}" data-stp="${stp.id}" style="grid-row:2; grid-column:${colPos};" title="${stp.description || ''}">`;
+      h += `<span class="id-tag">${stp.id}</span>${stp.title}`;
+      h += `</div>`;
+      colPos++;
+    });
+  });
+
+  // ROW 3: Task card areas
+  colPos = 1;
+  acts.forEach(act => {
+    (act.steps || []).forEach(stp => {
+      h += `<div class="task-cell" style="grid-row:3; grid-column:${colPos};">`;
+
+      // Render task_refs
+      (stp.task_refs || []).forEach(ref => {
+        const tsk = D.task_registry ? D.task_registry[ref.task_id] : null;
+        if (tsk) {
+          h += renderTaskCard(tsk, ref.task_id, ref);
+        }
+      });
+
+      // Legacy inline tasks
+      (stp.tasks || []).forEach(tsk => {
+        h += renderTaskCard(tsk, tsk.id, null);
+      });
+
+      h += `</div>`;
+      colPos++;
+    });
+  });
+
+  h += '</div>';
+  document.getElementById('map').innerHTML = h;
+
+  // Re-apply role filter if active
+  if (activeRoleFilter) applyRoleFilter(activeRoleFilter);
+}
+
+// ---- Cross-cutting questions panel ----
+function renderPanel() {
+  const cqs = getMapCCQuestions();
+  let h = '';
+  const cats = {};
+  cqs.forEach(q => {
+    const c = q.category || 'General';
+    if (!cats[c]) cats[c] = [];
+    cats[c].push(q);
+  });
+  Object.keys(cats).sort().forEach(cat => {
+    h += `<div style="font-size:10px;font-weight:800;color:var(--text-2);text-transform:uppercase;letter-spacing:.6px;margin:14px 0 6px;border-bottom:1px solid var(--border);padding-bottom:3px">${cat}</div>`;
+    cats[cat].forEach(q => {
+      const resp = getResponse(q.id);
+      const answeredStyle = (resp && resp.text && resp.text.trim()) ? 'border-color:var(--green);' : '';
+      h += `<div class="cq-card" style="${answeredStyle}" onclick="openModal('${q.id}')">`;
+      h += `<div style="display:flex;gap:6px;align-items:center">`;
+      h += `<span class="cq-id">${q.id}</span>`;
+      h += `<span class="cq-pri q-pri ${q.priority}">${q.priority}</span>`;
+      h += `<span class="cq-cat">${q.category}</span>`;
+      if (resp && resp.text && resp.text.trim()) h += `<span style="color:var(--green);font-size:10px;font-weight:800">&#10003;</span>`;
+      h += `</div>`;
+      h += `<div class="cq-txt">${q.question}</div>`;
+      h += `<div class="cq-tags">`;
+      (q.references || []).forEach(ref => {
+        h += `<span class="cq-tag" onclick="event.stopPropagation();scrollToRef('${ref}')">${ref}</span>`;
+      });
+      h += `</div></div>`;
+    });
+  });
+  document.getElementById('panelBody').innerHTML = h;
+}
+
+// ---- Map switching ----
+function switchMap(mapId) {
+  currentMap = mapId;
+  expanded = false;
+  qFilter = false;
+  activeRoleFilter = null;
+
+  // Reset UI state
+  document.getElementById('btnExpand').textContent = 'Expand All';
+  document.getElementById('btnExpand').classList.remove('on');
+  document.getElementById('btnQFilter').classList.remove('on');
+  document.querySelectorAll('.role-filter-btn').forEach(b => b.classList.remove('active'));
+
+  // Show/hide role filters on platform only
+  const roleFilters = document.getElementById('roleFilters');
+  if (currentMap === 'platform') {
+    roleFilters.style.display = 'flex';
+  } else {
+    roleFilters.style.display = 'none';
+  }
+
+  // Update subtitle
+  const mapDef = getCurrentMapDef();
+  if (mapDef && mapDef.label) {
+    document.getElementById('hdrSub').innerHTML = `v4.0 &mdash; ${mapDef.label} &middot; Activities &rarr; Steps &rarr; Tasks`;
+  } else {
+    document.getElementById('hdrSub').innerHTML = `Payments Application &middot; Activities &rarr; Steps &rarr; Tasks`;
+  }
+
+  renderTabs();
+  renderLegend();
+  renderStats();
+  renderMap();
+  renderPanel();
+}
+
+// ---- Interactions ----
+function toggle(el) { el.classList.toggle('open'); }
+
+function toggleExpand() {
+  expanded = !expanded;
+  document.querySelectorAll('.card').forEach(c => c.classList.toggle('open', expanded));
+  const b = document.getElementById('btnExpand');
+  b.textContent = expanded ? 'Collapse All' : 'Expand All';
+  b.classList.toggle('on', expanded);
+}
+
+function toggleQFilter() {
+  qFilter = !qFilter;
+  document.getElementById('btnQFilter').classList.toggle('on', qFilter);
+  document.querySelectorAll('.card').forEach(c => {
+    const hasQ = c.querySelector('.q-sec');
+    if (qFilter && !hasQ) c.classList.add('hide');
+    else { c.classList.remove('hide'); if (qFilter) c.classList.add('open'); }
+  });
+}
+
+function togglePanel() {
+  panelOpen = !panelOpen;
+  document.getElementById('panel').classList.toggle('open', panelOpen);
+  document.getElementById('btnPanel').classList.toggle('on', panelOpen);
+}
+
+// ---- Role filter ----
+function toggleRoleFilter(role) {
+  const btn = document.querySelector(`.role-filter-btn[data-role="${role}"]`);
+  if (activeRoleFilter === role) {
+    activeRoleFilter = null;
+    btn.classList.remove('active');
+    clearRoleFilter();
+  } else {
+    if (activeRoleFilter) {
+      document.querySelector(`.role-filter-btn[data-role="${activeRoleFilter}"]`).classList.remove('active');
+    }
+    activeRoleFilter = role;
+    btn.classList.add('active');
+    applyRoleFilter(role);
+  }
+  renderStats();
+}
+
+function applyRoleFilter(role) {
+  document.querySelectorAll('.card').forEach(c => {
+    const roles = (c.getAttribute('data-roles') || '').split(',');
+    if (roles.includes(role)) {
+      c.classList.remove('role-dimmed');
+      c.classList.add('open');
+    } else {
+      c.classList.add('role-dimmed');
+      c.classList.remove('open');
+    }
+  });
+}
+
+function clearRoleFilter() {
+  document.querySelectorAll('.card').forEach(c => {
+    c.classList.remove('role-dimmed');
+    if (!expanded) c.classList.remove('open');
+  });
+}
+
+// ---- Modal ----
+function openModal(qid) {
+  const q = allQs.find(x => x.id === qid);
+  if (!q) return;
+  currentModalQid = qid;
+
+  const isCQ = q.id.startsWith('CQ');
+  const icon = isCQ ? '&#128308;' : '&#9888;';
+  document.getElementById('mTitle').innerHTML = `<span style="color:${isCQ ? '#ef4444' : '#f59e0b'}">${icon}</span> ${q.id} <span class="q-pri ${q.priority}" style="font-size:11px">${q.priority}</span>`;
+  document.getElementById('mTxt').textContent = q.question;
+  document.getElementById('mMeta').innerHTML = `<strong>Category:</strong> ${q.category || 'General'}`;
+
+  let rh = '';
+  (q.references || []).forEach(ref => {
+    rh += `<a class="m-ref-link" onclick="closeModal();scrollToRef('${ref}')">${ref}</a> `;
+  });
+  document.getElementById('mRefs').innerHTML = '<strong style="font-size:11px">References: </strong>' + rh;
+
+  // Load response
+  const resp = getResponse(qid);
+  document.getElementById('responseText').value = resp ? resp.text : '';
+  if (resp && resp.updatedAt) {
+    const d = new Date(resp.updatedAt);
+    document.getElementById('responseTime').textContent = 'Last saved: ' + d.toLocaleString();
+    updateResponseStatus('saved');
+  } else {
+    document.getElementById('responseTime').textContent = '';
+    updateResponseStatus('');
+  }
+
+  document.getElementById('modalBg').classList.add('open');
+  // Focus textarea after animation
+  setTimeout(() => document.getElementById('responseText').focus(), 300);
+  updateEvolveButton();
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modalBg') && !e.target.classList.contains('m-close')) return;
+  // Save on close
+  saveCurrentResponse();
+  currentModalQid = null;
+  document.getElementById('modalBg').classList.remove('open');
+}
+
+function scrollToRef(id) {
+  let el = document.getElementById('c-' + id);
+  if (!el) el = document.querySelector(`[data-act="${id}"]`);
+  if (!el) el = document.querySelector(`[data-stp="${id}"]`);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    if (el.classList.contains('card')) el.classList.add('open');
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 2500);
+  }
+}
+
+function scrollFirstQ(actId) {
+  const acts = getMapActivities();
+  const actIdx = acts.findIndex(a => a.id === actId);
+  if (actIdx < 0) return;
+  let colStart = 1;
+  for (let i = 0; i < actIdx; i++) colStart += (acts[i].steps || []).length;
+  const colEnd = colStart + (acts[actIdx].steps || []).length;
+  const taskCells = document.querySelectorAll('.task-cell');
+  for (let ci = colStart - 1; ci < colEnd - 1 && ci < taskCells.length; ci++) {
+    const pill = taskCells[ci].querySelector('.q-pill');
+    if (pill) {
+      const card = pill.closest('.card');
+      if (card) card.classList.add('open');
+      pill.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      const target = card || pill;
+      target.classList.add('flash');
+      setTimeout(() => target.classList.remove('flash'), 2500);
+      return;
+    }
+  }
+}
+
+// ---- Update question indicators ----
+function updateQuestionIndicators() {
+  document.querySelectorAll('.q-pill[data-qid]').forEach(pill => {
+    const qid = pill.getAttribute('data-qid');
+    const resp = getResponse(qid);
+    if (resp && resp.text && resp.text.trim()) {
+      pill.classList.add('answered');
+      if (!pill.querySelector('.q-answered-check')) {
+        const check = document.createElement('span');
+        check.className = 'q-answered-check';
+        check.innerHTML = '&#10003;';
+        pill.prepend(check);
+      }
+    } else {
+      pill.classList.remove('answered');
+      const check = pill.querySelector('.q-answered-check');
+      if (check) check.remove();
+    }
+  });
+}
+
+// ---- Export ----
+function exportResponses() {
+  const store = loadResponses();
+  const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'estm8_question_responses.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportResponsesMarkdown() {
+  const store = loadResponses();
+  let md = '# Estm8 Story Map — Question Responses\n\n';
+  md += `Exported: ${new Date().toLocaleString()}\n\n`;
+
+  const qs = D.question_registry ? D.question_registry.questions : (D.questions || []);
+  const cqs = D.question_registry ? D.question_registry.cross_cutting_questions : (D.cross_cutting_questions || []);
+
+  md += '## Task Questions\n\n';
+  qs.forEach(q => {
+    const resp = store.responses[q.id];
+    md += `### ${q.id} [${q.priority}] — ${q.category}\n`;
+    md += `**Q:** ${q.question}\n\n`;
+    if (resp && resp.text && resp.text.trim()) {
+      md += `**A:** ${resp.text}\n\n`;
+      md += `*Last updated: ${new Date(resp.updatedAt).toLocaleString()}*\n\n`;
+    } else {
+      md += `**A:** *Unanswered*\n\n`;
+    }
+    md += `References: ${(q.references || []).join(', ')}\n\n---\n\n`;
+  });
+
+  md += '## Cross-Cutting Questions\n\n';
+  cqs.forEach(q => {
+    const resp = store.responses[q.id];
+    md += `### ${q.id} [${q.priority}] — ${q.category}\n`;
+    md += `**Q:** ${q.question}\n\n`;
+    if (resp && resp.text && resp.text.trim()) {
+      md += `**A:** ${resp.text}\n\n`;
+      md += `*Last updated: ${new Date(resp.updatedAt).toLocaleString()}*\n\n`;
+    } else {
+      md += `**A:** *Unanswered*\n\n`;
+    }
+    md += `References: ${(q.references || []).join(', ')}\n\n---\n\n`;
+  });
+
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'estm8_question_responses.md';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---- Keyboard shortcuts ----
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('reviewBg').classList.contains('open')) { closeReview(); return; }
+    if (document.getElementById('settingsBg').classList.contains('open')) { closeSettings(); return; }
+    if (chatOpen) { closeChat(); return; }
+    closeModal();
+    if (panelOpen) togglePanel();
+  }
+  // 1-5 to switch maps
+  if (!document.getElementById('modalBg').classList.contains('open')) {
+    const maps = ['platform', 'MD', 'EST', 'PM', 'PS'];
+    if (e.key >= '1' && e.key <= '5') {
+      e.preventDefault();
+      switchMap(maps[parseInt(e.key) - 1]);
+    }
+  }
+});
+
+// ---- Init ----
+function init() {
+  initEvolvedState();
+  buildQuestionIndex();
+  renderTabs();
+  renderLegend();
+  renderStats();
+  renderMap();
+  renderPanel();
+  updateQuestionIndicators();
+}
+
+// Initialize on DOM ready
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
