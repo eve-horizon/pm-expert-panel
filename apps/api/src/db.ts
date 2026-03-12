@@ -4,9 +4,15 @@ import { Pool } from 'pg';
 // Connection pool
 // ---------------------------------------------------------------------------
 
-const databaseUrl = process.env.DATABASE_URL;
+const rawDatabaseUrl = process.env.DATABASE_URL ?? '';
 const isLocal =
-  databaseUrl?.includes('localhost') || databaseUrl?.includes('127.0.0.1');
+  rawDatabaseUrl.includes('localhost') || rawDatabaseUrl.includes('127.0.0.1');
+
+// Managed DBs often set sslmode=require. pg v8 treats that as verify-full,
+// which fails with self-signed certs. Override to disable strict verification.
+const databaseUrl = isLocal
+  ? rawDatabaseUrl
+  : rawDatabaseUrl.replace(/sslmode=[^&]+/, 'sslmode=no-verify');
 
 export const pool = new Pool({
   connectionString: databaseUrl,
