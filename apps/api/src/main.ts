@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { eveUserAuth, eveAuthConfig } from '@eve-horizon/auth';
+import { eveUserAuth, eveAuthConfig, verifyEveToken } from '@eve-horizon/auth';
 import { getDbStatus } from './db';
 
 import type { Request, Response, NextFunction } from 'express';
@@ -24,10 +24,43 @@ async function bootstrap() {
   // ---------------------------------------------------------------------------
   app.use(eveUserAuth());
 
-  // Bridge req.eveUser -> req.user for NestJS guard/controller compatibility
+  // ---------------------------------------------------------------------------
+  // Eve Agent Auth — verifies job/service tokens from Eve agents.
+  // Attaches req.agent when a valid job token is present.
+  // Non-blocking: falls through silently if no token or invalid token.
+  // ---------------------------------------------------------------------------
+  app.use(async (req: Request, _res: Response, next: NextFunction) => {
+    if (!(req as any).eveUser) {
+      const authHeader = req.headers.authorization;
+      const token = typeof authHeader === 'string'
+        ? authHeader.replace(/^Bearer\s+/i, '')
+        : undefined;
+      if (token) {
+        try {
+          (req as any).agent = await verifyEveToken(token);
+        } catch {
+          // Not a valid Eve token — continue without agent context
+        }
+      }
+    }
+    next();
+  });
+
+  // Bridge req.eveUser or req.agent -> req.user for NestJS guard compatibility
   app.use((req: Request, _res: Response, next: NextFunction) => {
     if ((req as any).eveUser) {
       (req as any).user = (req as any).eveUser;
+    } else if ((req as any).agent) {
+      // Map Eve agent/job token claims to the user shape AuthGuard expects
+      const agent = (req as any).agent;
+      (req as any).user = {
+        id: agent.user_id || agent.job_id || 'agent',
+        orgId: agent.org_id,
+        email: agent.email || `${agent.job_id}@eve.agent`,
+        type: agent.type,
+        jobId: agent.job_id,
+        projectId: agent.project_id,
+      };
     }
     next();
   });
