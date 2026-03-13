@@ -82,7 +82,7 @@ export function AppShell({
     : [];
 
   return (
-    <div className="h-full bg-eden-bg flex flex-col">
+    <div className="min-h-screen bg-eden-bg flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-[100] bg-eden-header px-6 py-4 shadow-lg">
         <div className="flex items-center justify-between">

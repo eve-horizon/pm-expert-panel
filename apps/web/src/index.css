@@ -38,12 +38,7 @@
 
   body {
     margin: 0;
-    height: 100vh;
-    overflow: hidden;
-  }
-
-  #root {
-    height: 100%;
+    min-height: 100vh;
   }
 
   /* Scrollbar styling for the map grid */
