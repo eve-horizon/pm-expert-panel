@@ -16,6 +16,7 @@ interface TaskCardProps {
   dimmed: boolean;
   aiStatus?: 'modified' | 'added' | null;
   onQuestionClick?: (questionId: string) => void;
+  forceExpanded?: boolean;
 }
 
 // Source badge color map
@@ -34,8 +35,9 @@ const DEVICE_STYLES: Record<string, { bg: string; color: string }> = {
   all:     { bg: '#e0e7ff', color: '#4338ca' },
 };
 
-export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardProps) {
-  const [expanded, setExpanded] = useState(false);
+export function TaskCard({ task, dimmed, aiStatus, onQuestionClick, forceExpanded }: TaskCardProps) {
+  const [localExpanded, setLocalExpanded] = useState(false);
+  const expanded = forceExpanded ?? localExpanded;
   const [hovered, setHovered] = useState(false);
 
   const firstPersona = task.personas[0]?.persona ?? null;
@@ -70,6 +72,10 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
     transition: 'all 0.2s',
   };
 
+  if (expanded) {
+    cardStyle.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+  }
+
   if (hovered && !dimmed) {
     cardStyle.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
     cardStyle.transform = 'translateY(-1px)';
@@ -98,6 +104,7 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
       data-display-id={task.display_id}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={() => forceExpanded === undefined && setLocalExpanded(!localExpanded)}
     >
       <div style={{ padding: '10px 14px 8px' }}>
         {/* Title row — title first, large and clear */}
@@ -117,24 +124,19 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
             {task.title}
           </h4>
 
-          <button
-            onClick={() => setExpanded(!expanded)}
+          <span
             style={{
               fontSize: '10px',
               color: '#6b7280',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
               flexShrink: 0,
               marginTop: '3px',
               transition: 'transform 0.15s',
               transform: expanded ? 'rotate(180deg)' : undefined,
-              padding: 0,
             }}
-            aria-label={expanded ? 'Collapse task' : 'Expand task'}
+            aria-hidden="true"
           >
             <ChevronIcon className="w-4 h-4" />
-          </button>
+          </span>
         </div>
 
         {/* Metadata row: ID + persona badges + lifecycle + source + device + questions */}
@@ -254,9 +256,11 @@ export function TaskCard({ task, dimmed, aiStatus, onQuestionClick }: TaskCardPr
       {expanded && (
         <div style={{ padding: '0 14px 12px', fontSize: '11px' }}>
           <TaskCardExpanded
+            taskDisplayId={task.display_id}
             userStory={task.user_story}
             acceptanceCriteria={task.acceptance_criteria}
             questions={task.questions}
+            onQuestionClick={onQuestionClick}
           />
         </div>
       )}

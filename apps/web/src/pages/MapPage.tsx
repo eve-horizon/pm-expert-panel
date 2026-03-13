@@ -47,6 +47,10 @@ export function MapPage() {
   // Phase 4: lifecycle toggle (lifted to page level)
   const [hideProposed, setHideProposed] = useState(false);
 
+  // Expand all / questions only
+  const [expandAll, setExpandAll] = useState(false);
+  const [questionsOnly, setQuestionsOnly] = useState(false);
+
   // Open changeset review modal
   const handleReviewChangeset = useCallback(async (changesetId: string) => {
     setReviewingChangeset(changesetId);
@@ -192,6 +196,36 @@ export function MapPage() {
             count={evolvedCount}
           />
 
+          {/* Expand All toggle */}
+          <button
+            onClick={() => setExpandAll(!expandAll)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+              border transition-colors
+              ${expandAll
+                ? 'bg-eden-accent text-white border-eden-accent'
+                : 'bg-eden-bg text-eden-text-2 border-eden-border hover:text-eden-text'
+              }`}
+            data-testid="expand-all-btn"
+          >
+            <ExpandIcon className="w-3.5 h-3.5" />
+            {expandAll ? 'Collapse All' : 'Expand All'}
+          </button>
+
+          {/* Questions Only toggle */}
+          <button
+            onClick={() => setQuestionsOnly(!questionsOnly)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+              border transition-colors
+              ${questionsOnly
+                ? 'bg-amber-500 text-white border-amber-500'
+                : 'bg-eden-bg text-eden-text-2 border-eden-border hover:text-eden-text'
+              }`}
+            data-testid="questions-only-btn"
+          >
+            <QuestionFilterIcon className="w-3.5 h-3.5" />
+            Questions Only
+          </button>
+
           {/* Hide/Show 2.0 toggle */}
           <button
             onClick={() => setHideProposed(!hideProposed)}
@@ -278,6 +312,8 @@ export function MapPage() {
         aiAddedEntities={aiAddedEntities}
         onQuestionClick={setQuestionModalId}
         hideProposed={hideProposed}
+        expandAll={expandAll}
+        questionsOnly={questionsOnly}
       />
 
       {/* Chat Panel */}
@@ -368,6 +404,27 @@ function PrintIcon({ className }: { className?: string }) {
       <polyline points="6 9 6 2 18 2 18 9" />
       <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
       <rect x="6" y="14" width="12" height="8" />
+    </svg>
+  );
+}
+
+function ExpandIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 3 21 3 21 9" />
+      <polyline points="9 21 3 21 3 15" />
+      <line x1="21" y1="3" x2="14" y2="10" />
+      <line x1="3" y1="21" x2="10" y2="14" />
+    </svg>
+  );
+}
+
+function QuestionFilterIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
     </svg>
   );
 }

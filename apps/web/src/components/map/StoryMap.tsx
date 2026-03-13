@@ -29,6 +29,8 @@ interface StoryMapProps {
   onQuestionClick?: (questionId: string) => void;
   hideProposed?: boolean;
   onHideProposedChange?: (value: boolean) => void;
+  expandAll?: boolean;
+  questionsOnly?: boolean;
 }
 
 export function StoryMap({
@@ -36,6 +38,8 @@ export function StoryMap({
   aiAddedEntities,
   onQuestionClick,
   hideProposed = false,
+  expandAll = false,
+  questionsOnly = false,
 }: StoryMapProps) {
   const { projectId } = useParams<{ projectId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -249,12 +253,19 @@ export function StoryMap({
                 !selectedActivities.has(activity.id);
 
               return activity.steps.map((step) => {
-                const filteredTasks = hideProposed
+                let filteredTasks = hideProposed
                   ? step.tasks.filter((t) => (t.lifecycle ?? 'current') !== 'proposed')
                   : step.tasks;
 
                 // Deduplicate: group placements of the same task into one card
-                const deduped = deduplicateTasks(filteredTasks);
+                let deduped = deduplicateTasks(filteredTasks);
+
+                // Questions-only filter: only show tasks that have open questions
+                if (questionsOnly) {
+                  deduped = deduped.filter(
+                    (t) => t.questions.some((q) => q.status !== 'resolved'),
+                  );
+                }
 
                 return (
                   <div
@@ -292,6 +303,7 @@ export function StoryMap({
                             : undefined
                           }
                           onQuestionClick={onQuestionClick}
+                          forceExpanded={expandAll ? true : undefined}
                         />
                       ))
                     )}
