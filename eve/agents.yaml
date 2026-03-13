@@ -12,7 +12,7 @@ agents:
       policy: routable
       clients: [slack]
     policies:
-      permission_policy: auto_edit
+      permission_policy: yolo
       git:
         commit: never
         push: never
@@ -26,7 +26,7 @@ agents:
     harness_profile: expert
     workflow: assistant
     policies:
-      permission_policy: auto_edit
+      permission_policy: yolo
       git:
         commit: never
         push: never
@@ -39,7 +39,7 @@ agents:
     harness_profile: expert
     workflow: assistant
     policies:
-      permission_policy: auto_edit
+      permission_policy: yolo
       git:
         commit: never
         push: never
@@ -52,7 +52,7 @@ agents:
     harness_profile: expert
     workflow: assistant
     policies:
-      permission_policy: auto_edit
+      permission_policy: yolo
       git:
         commit: never
         push: never
@@ -65,7 +65,7 @@ agents:
     harness_profile: expert
     workflow: assistant
     policies:
-      permission_policy: auto_edit
+      permission_policy: yolo
       git:
         commit: never
         push: never
@@ -78,7 +78,7 @@ agents:
     harness_profile: expert
     workflow: assistant
     policies:
-      permission_policy: auto_edit
+      permission_policy: yolo
       git:
         commit: never
         push: never
@@ -91,7 +91,7 @@ agents:
     harness_profile: expert
     workflow: assistant
     policies:
-      permission_policy: auto_edit
+      permission_policy: yolo
       git:
         commit: never
         push: never
@@ -104,7 +104,7 @@ agents:
     harness_profile: expert
     workflow: assistant
     policies:
-      permission_policy: auto_edit
+      permission_policy: yolo
       git:
         commit: never
         push: never
@@ -120,7 +120,7 @@ agents:
     gateway:
       policy: none
     policies:
-      permission_policy: auto_edit
+      permission_policy: yolo
       git:
         commit: never
         push: never
@@ -135,7 +135,7 @@ agents:
     gateway:
       policy: none
     policies:
-      permission_policy: auto_edit
+      permission_policy: yolo
       git:
         commit: never
         push: never
