@@ -32,7 +32,11 @@ export class EveEventsService {
             ? { Authorization: `Bearer ${this.eveServiceToken}` }
             : {}),
         },
-        body: JSON.stringify({ event, payload }),
+        body: JSON.stringify({
+          type: event,
+          source: 'app',
+          payload,
+        }),
       });
 
       if (!response.ok) {
