@@ -35,7 +35,7 @@ workflows:
         agent:
           name: alignment
     hints:
-      timeout_seconds: 300
+      timeout_seconds: 600
       permission_policy: yolo
 
   question-evolution:
@@ -50,5 +50,5 @@ workflows:
         agent:
           name: question-agent
     hints:
-      timeout_seconds: 300
+      timeout_seconds: 600
       permission_policy: yolo

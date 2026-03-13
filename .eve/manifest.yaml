@@ -75,7 +75,7 @@ workflows:
         agent:
           name: question-agent
     hints:
-      timeout_seconds: 300
+      timeout_seconds: 600
       permission_policy: yolo
 
   alignment-check:
@@ -90,7 +90,7 @@ workflows:
         agent:
           name: alignment
     hints:
-      timeout_seconds: 300
+      timeout_seconds: 600
       permission_policy: yolo
 
   ingestion-pipeline:
