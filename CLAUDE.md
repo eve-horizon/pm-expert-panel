@@ -83,3 +83,14 @@ eve agents config --repo-dir .
 - When adding a new agent, update: `eve/agents.yaml`, `eve/teams.yaml` (if team member), and create `skills/<slug>/SKILL.md`
 - When changing harness config, edit `eve/x-eve.yaml`
 - After any config change, re-sync with `eve agents sync`
+- **Never edit existing migrations.** Migrations are immutable once created — they may already have run on staging/production databases. Always create a new migration file with the next timestamp instead.
+
+## Testing Strategy
+
+Eden has a **two-tier verification** model:
+
+1. **Local Docker** (`docker-compose up`) — Tests DB migrations, API CRUD, changeset apply logic, UI rendering. No Eve platform needed. Use `scripts/smoke-test-local-*.sh` and direct `curl` against `localhost:3000`.
+
+2. **Staging Sandbox** (Eve deploy) — Tests Eve-dependent features: chat routing, SSE streaming, agent workflows, event-triggered pipelines. Use `scripts/smoke-test*.sh` (curl) and `tests/e2e/*.spec.ts` (Playwright) against `https://eden-app.${ORG_SLUG}-eden-sandbox.eh1.incept5.dev`.
+
+**Not all features need local Docker testing.** Features that leverage Eve platform capabilities (chat, SSE job streams, workflow triggers, child job dispatch) are inherently staging-only. Local Docker verification covers: schema correctness, API contract, RLS enforcement, changeset apply logic, and UI component rendering. Don't build local mocks of Eve infrastructure — test the real thing on staging.

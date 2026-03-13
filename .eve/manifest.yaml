@@ -21,6 +21,7 @@ services:
       EVE_API_URL: ${secret.EVE_API_URL}
       EVE_PROJECT_ID: ${secret.EVE_PROJECT_ID}
       EVE_SERVICE_TOKEN: ${secret.EVE_SERVICE_TOKEN}
+      EDEN_API_URL: ${secret.EDEN_API_URL}
 
   web:
     build:

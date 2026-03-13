@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { DatabaseService, DbContext } from '../common/database.service';
+import { EveIngestService } from './eve-ingest.service';
 
 // ---------------------------------------------------------------------------
 // Row type — mirrors the ingestion_sources DB table
@@ -21,29 +22,39 @@ export interface IngestionSourceRow {
   updated_at: string;
 }
 
+export interface SourceResponse extends IngestionSourceRow {
+  download_url: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
 
 @Injectable()
 export class SourcesService {
-  constructor(private readonly db: DatabaseService) {}
+  private readonly logger = new Logger(SourcesService.name);
+
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly eveIngest: EveIngestService,
+  ) {}
 
   // -------------------------------------------------------------------------
   // Queries
   // -------------------------------------------------------------------------
 
-  async list(ctx: DbContext, projectId: string): Promise<IngestionSourceRow[]> {
-    return this.db.query<IngestionSourceRow>(
+  async list(ctx: DbContext, projectId: string): Promise<SourceResponse[]> {
+    const rows = await this.db.query<IngestionSourceRow>(
       ctx,
       `SELECT * FROM ingestion_sources
         WHERE project_id = $1
         ORDER BY created_at DESC`,
       [projectId],
     );
+    return rows.map((r) => this.toResponse(r));
   }
 
-  async findById(ctx: DbContext, id: string): Promise<IngestionSourceRow> {
+  async findById(ctx: DbContext, id: string): Promise<SourceResponse> {
     const source = await this.db.queryOne<IngestionSourceRow>(
       ctx,
       'SELECT * FROM ingestion_sources WHERE id = $1',
@@ -54,7 +65,7 @@ export class SourcesService {
       throw new NotFoundException(`Source ${id} not found`);
     }
 
-    return source;
+    return this.toResponse(source);
   }
 
   // -------------------------------------------------------------------------
@@ -65,12 +76,21 @@ export class SourcesService {
     ctx: DbContext,
     projectId: string,
     input: { filename: string; content_type?: string; file_size?: number },
-  ): Promise<IngestionSourceRow & { upload_url: string }> {
+  ): Promise<SourceResponse & { upload_url: string }> {
+    // Call Eve ingest API first — get presigned upload URL and ingest ID.
+    // When Eve is not configured (local dev), returns null and we skip.
+    const eveResult = await this.eveIngest.createIngest(
+      input.filename,
+      input.content_type ?? 'application/octet-stream',
+      input.file_size ?? 0,
+    );
+
     return this.db.withClient(ctx, async (client) => {
       const result = await client.query<IngestionSourceRow>(
         `INSERT INTO ingestion_sources
-              (org_id, project_id, filename, content_type, file_size, status)
-         VALUES ($1, $2, $3, $4, $5, 'uploaded')
+              (org_id, project_id, filename, content_type, file_size, status,
+               eve_ingest_id, storage_key)
+         VALUES ($1, $2, $3, $4, $5, 'uploaded', $6, $7)
          RETURNING *`,
         [
           ctx.org_id,
@@ -78,6 +98,8 @@ export class SourcesService {
           input.filename,
           input.content_type ?? null,
           input.file_size ?? null,
+          eveResult?.ingest_id ?? null,
+          eveResult?.storage_key ?? null,
         ],
       );
 
@@ -91,20 +113,20 @@ export class SourcesService {
           projectId,
           source.id,
           ctx.user_id ?? null,
-          JSON.stringify({ filename: input.filename }),
+          JSON.stringify({
+            filename: input.filename,
+            eve_ingest_id: eveResult?.ingest_id ?? null,
+          }),
         ],
       );
 
-      // In production, we'd call Eve's ingest API here:
-      // const eveIngest = await eveClient.post(`/projects/${eveProjectId}/ingest`, { filename, content_type })
-      // For now, return a placeholder upload_url
-      const upload_url = `https://storage.example.com/upload/${source.id}`;
+      const upload_url = eveResult?.upload_url ?? `data:,placeholder-${source.id}`;
 
-      return { ...source, upload_url };
+      return { ...this.toResponse(source), upload_url };
     });
   }
 
-  async confirm(ctx: DbContext, id: string): Promise<IngestionSourceRow> {
+  async confirm(ctx: DbContext, id: string): Promise<SourceResponse> {
     return this.db.withClient(ctx, async (client) => {
       const result = await client.query<IngestionSourceRow>(
         `UPDATE ingestion_sources
@@ -121,8 +143,24 @@ export class SourcesService {
         );
       }
 
-      // In production, this would call Eve to confirm the ingest,
-      // triggering the ingestion-pipeline workflow.
+      // Confirm with Eve to trigger the ingestion-pipeline workflow.
+      // Eve emits system.doc.ingest which the orchestrator picks up.
+      if (source.eve_ingest_id) {
+        try {
+          const eveResult = await this.eveIngest.confirmIngest(source.eve_ingest_id);
+          if (eveResult?.job_id) {
+            await client.query(
+              `UPDATE ingestion_sources SET eve_job_id = $1 WHERE id = $2`,
+              [eveResult.job_id, id],
+            );
+            source.eve_job_id = eveResult.job_id;
+          }
+        } catch (err) {
+          this.logger.error(`Eve confirm failed for source ${id}: ${(err as Error).message}`);
+          // Don't block the confirm — status is already 'processing'.
+          // The callback will update status when Eve catches up.
+        }
+      }
 
       await client.query(
         `INSERT INTO audit_log (org_id, project_id, entity_type, entity_id, action, actor, details)
@@ -132,11 +170,14 @@ export class SourcesService {
           source.project_id,
           source.id,
           ctx.user_id ?? null,
-          JSON.stringify({ status: 'processing' }),
+          JSON.stringify({
+            status: 'processing',
+            eve_job_id: source.eve_job_id,
+          }),
         ],
       );
 
-      return source;
+      return this.toResponse(source);
     });
   }
 
@@ -145,7 +186,7 @@ export class SourcesService {
     id: string,
     status: string,
     extra?: { eve_job_id?: string; error_message?: string },
-  ): Promise<IngestionSourceRow> {
+  ): Promise<SourceResponse> {
     return this.db.withClient(ctx, async (client) => {
       const setClauses = ['status = $2'];
       const params: unknown[] = [id, status];
@@ -184,7 +225,34 @@ export class SourcesService {
         ],
       );
 
-      return source;
+      return this.toResponse(source);
     });
+  }
+
+  /**
+   * Find a source by its Eve ingest ID (used by the callback webhook).
+   * Uses a direct query without RLS since callbacks arrive without org context.
+   */
+  async findByEveIngestId(
+    eveIngestId: string,
+  ): Promise<IngestionSourceRow | null> {
+    const rows = await this.db.queryDirect<IngestionSourceRow>(
+      'SELECT * FROM ingestion_sources WHERE eve_ingest_id = $1',
+      [eveIngestId],
+    );
+    return rows[0] ?? null;
+  }
+
+  // -------------------------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------------------------
+
+  private toResponse(row: IngestionSourceRow): SourceResponse {
+    return {
+      ...row,
+      download_url: row.eve_ingest_id
+        ? this.eveIngest.downloadUrl(row.eve_ingest_id)
+        : null,
+    };
   }
 }

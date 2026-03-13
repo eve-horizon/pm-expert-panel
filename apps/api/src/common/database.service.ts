@@ -87,4 +87,22 @@ export class DatabaseService implements OnModuleDestroy {
     const rows = await this.query<T>(ctx, sql, params);
     return rows[0] ?? null;
   }
+
+  /**
+   * Run a query without RLS context — for system-level operations like
+   * webhook callbacks where there is no user/org scope. The table owner
+   * bypasses RLS by default (no FORCE ROW LEVEL SECURITY).
+   */
+  async queryDirect<T extends QueryResultRow = QueryResultRow>(
+    sql: string,
+    params: unknown[] = [],
+  ): Promise<T[]> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query<T>(sql, params);
+      return result.rows;
+    } finally {
+      client.release();
+    }
+  }
 }
