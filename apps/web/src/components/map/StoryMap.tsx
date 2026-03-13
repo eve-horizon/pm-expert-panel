@@ -151,7 +151,7 @@ export function StoryMap({
   }
 
   return (
-    <div className="flex flex-col" data-testid="story-map">
+    <div className="flex min-h-0 flex-1 flex-col" data-testid="story-map">
       {/* Persona tabs (server-side filter) */}
       <PersonaTabs
         personas={data.personas}
@@ -188,7 +188,11 @@ export function StoryMap({
       )}
 
       {/* Scrollable grid area */}
-      <div ref={gridContainerRef} className="overflow-x-auto eden-scroll p-6 pb-32" style={{ backgroundColor: '#f0f2f5' }}>
+      <div
+        ref={gridContainerRef}
+        className="min-h-0 flex-1 overflow-x-auto overflow-y-auto eden-scroll p-6 pb-32"
+        style={{ backgroundColor: '#f0f2f5' }}
+      >
         {data.activities.length === 0 ? (
           <EmptyMap />
         ) : (

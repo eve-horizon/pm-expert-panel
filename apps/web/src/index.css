@@ -3,6 +3,12 @@
 @tailwind utilities;
 
 @layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
   :root {
     /* Eden design tokens as CSS custom properties */
     --bg: #f0f2f5;
