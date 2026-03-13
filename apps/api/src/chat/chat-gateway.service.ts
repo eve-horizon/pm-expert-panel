@@ -114,12 +114,17 @@ export class ChatGatewayService {
     userId: string,
     email?: string,
     token?: string,
+    edenProjectId?: string,
   ): Promise<SimulateResponse> {
+    // Include Eden project context so agents know which project to modify
+    const context = edenProjectId
+      ? `[eden-project:${edenProjectId}] `
+      : '';
     return this.proxy<SimulateResponse>(
       'POST',
       `/projects/${this.eveProjectId}/chat/simulate`,
       {
-        text: `@eve pm ${message}`,
+        text: `@eve pm ${context}${message}`,
         team_id: 'eden-web',
         provider: 'api',
         user_id: userId,
@@ -149,12 +154,16 @@ export class ChatGatewayService {
     userId: string,
     email?: string,
     token?: string,
+    edenProjectId?: string,
   ): Promise<SimulateResponse> {
+    const context = edenProjectId
+      ? `[eden-project:${edenProjectId}] `
+      : '';
     return this.proxy<SimulateResponse>(
       'POST',
       `/projects/${this.eveProjectId}/chat/simulate`,
       {
-        text: `@eve pm ${message}`,
+        text: `@eve pm ${context}${message}`,
         team_id: 'eden-web',
         provider: 'api',
         user_id: userId,

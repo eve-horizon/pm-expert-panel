@@ -43,9 +43,11 @@ interface ChatPanelProps {
   onReviewChangeset?: (changesetId: string) => void;
 }
 
-/** Strip the "@eve pm " routing prefix the gateway prepends */
+/** Strip the "@eve pm [eden-project:UUID] " routing prefix the gateway prepends */
 function stripRoutePrefix(body: string): string {
-  return body.replace(/^@eve\s+\w+\s+/i, '');
+  return body
+    .replace(/^@eve\s+\w+\s+/i, '')
+    .replace(/^\[eden-project:[^\]]+\]\s*/i, '');
 }
 
 /** Convert Eve messages to our display format */
@@ -156,7 +158,7 @@ export function ChatPanel({ projectId, open, onClose, onReviewChangeset }: ChatP
       } else {
         // Send to existing thread
         setMessages((prev) => [...prev, userMsg]);
-        await api.post(`/chat/threads/${activeThread}/messages`, { message });
+        await api.post(`/chat/threads/${activeThread}/messages`, { message, projectId });
         startPolling(activeThread, messages.length + 1); // Poll for response
       }
     } catch {

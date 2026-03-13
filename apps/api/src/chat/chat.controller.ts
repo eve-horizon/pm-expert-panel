@@ -34,7 +34,7 @@ export class ChatController {
   @HttpCode(HttpStatus.CREATED)
   createThread(
     @Req() req: Request,
-    @Param('projectId') _projectId: string,
+    @Param('projectId') projectId: string,
     @Body() body: { message: string },
   ) {
     const ctx = dbContext(req);
@@ -44,6 +44,7 @@ export class ChatController {
       ctx.user_id ?? 'anonymous',
       user?.email,
       bearerToken(req),
+      projectId,
     );
   }
 
@@ -60,7 +61,7 @@ export class ChatController {
   sendMessage(
     @Req() req: Request,
     @Param('threadId') threadId: string,
-    @Body() body: { message: string },
+    @Body() body: { message: string; projectId?: string },
   ) {
     const ctx = dbContext(req);
     const user = (req as any).user;
@@ -70,6 +71,7 @@ export class ChatController {
       ctx.user_id ?? 'anonymous',
       user?.email,
       bearerToken(req),
+      body.projectId,
     );
   }
 
