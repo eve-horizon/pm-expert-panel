@@ -200,6 +200,7 @@ export function StoryMap({
               gridTemplateRows: 'auto auto 1fr',
               gap: 0,
               minWidth: 'fit-content',
+              minHeight: '100%',
             }}
           >
             {/* ROW 1: Activity headers — each spans its own steps' columns */}
