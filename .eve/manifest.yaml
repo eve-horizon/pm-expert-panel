@@ -61,6 +61,60 @@ environments:
   sandbox:
     pipeline: deploy
 
+workflows:
+  question-evolution:
+    trigger:
+      app:
+        event: question.answered
+    with_apis:
+      - service: api
+        description: Eden Story Map API for reading questions/tasks and creating changesets
+    steps:
+      - name: evolve
+        agent:
+          name: question-agent
+    hints:
+      timeout_seconds: 300
+      permission_policy: auto_edit
+
+  alignment-check:
+    trigger:
+      app:
+        event: changeset.accepted
+    with_apis:
+      - service: api
+        description: Eden Story Map API for reading map state and creating questions
+    steps:
+      - name: align
+        agent:
+          name: alignment
+    hints:
+      timeout_seconds: 300
+      permission_policy: auto_edit
+
+  ingestion-pipeline:
+    trigger:
+      system:
+        event: doc.ingest
+    with_apis:
+      - service: api
+        description: Eden Story Map API for reading map state and creating changesets
+    steps:
+      - name: ingest
+        agent:
+          name: ingestion
+      - name: extract
+        depends_on: [ingest]
+        agent:
+          name: extraction
+      - name: synthesize
+        depends_on: [extract]
+        agent:
+          name: synthesis
+    hints:
+      timeout_seconds: 900
+      permission_policy: auto_edit
+
 pipelines:
   deploy:
     steps:
