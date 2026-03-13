@@ -16,31 +16,27 @@ You are a conversational map editing agent for Eden story maps. Users describe w
 
 ## Making API Calls
 
-**Do not use `curl`** — it is not available. Use Node.js `fetch()` via Bash:
+**Do not use `curl`** — it is not available. Use `node --input-type=module -e` with `fetch()`:
 
 ```bash
-# Discover API URL and auth token
 EDEN_API_URL="${EDEN_API_URL:-https://api.Incept5-eden-sandbox.eh1.incept5.dev}"
-TOKEN=$(eve auth token --raw 2>/dev/null || echo "")
 
-# GET — read map state
-node -e "
-  const r = await fetch('${EDEN_API_URL}/projects/${PROJECT_ID}/map', {
-    headers: { Authorization: 'Bearer ${TOKEN}' }
-  });
-  console.log(JSON.stringify(await r.json(), null, 2));
-"
+node --input-type=module -e "
+  import { readFileSync } from 'fs';
+  const creds = JSON.parse(readFileSync(process.env.HOME + '/.eve/credentials.json', 'utf8'));
+  const TOKEN = Object.values(creds.tokens)[0].access_token;
+  const API = '${EDEN_API_URL}';
+  const PID = '${PROJECT_ID}';
 
-# POST — create entity
-node -e "
-  const r = await fetch('${EDEN_API_URL}/projects/${PROJECT_ID}/personas', {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ${TOKEN}', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code: 'DOE', name: 'DevOps Engineer', color: '#FF6B6B' })
-  });
-  console.log(JSON.stringify(await r.json(), null, 2));
+  // GET — read map
+  const map = await (await fetch(API + '/projects/' + PID + '/map', {
+    headers: { Authorization: 'Bearer ' + TOKEN }
+  })).json();
+  console.log(JSON.stringify(map, null, 2));
 "
 ```
+
+**Auth**: `eve auth token --raw` does NOT work for system users. Read the token from `$HOME/.eve/credentials.json` as shown above.
 
 ### Key endpoints
 

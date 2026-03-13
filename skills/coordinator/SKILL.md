@@ -121,11 +121,18 @@ You can call the Eden REST API to read and modify the story map. **Do not use `c
 ### Discovering the API
 
 ```bash
-# The API URL — read from environment or use the known staging URL
 EDEN_API_URL="${EDEN_API_URL:-https://api.Incept5-eden-sandbox.eh1.incept5.dev}"
+```
 
-# Your auth token — your Eve job token works for Eden API auth
-TOKEN=$(eve auth token --raw 2>/dev/null || echo "")
+### Getting your auth token
+
+`eve auth token --raw` does NOT work for system/job users. Read the token directly from the credentials file:
+
+```javascript
+// In node --input-type=module -e:
+import { readFileSync } from 'fs';
+const creds = JSON.parse(readFileSync(process.env.HOME + '/.eve/credentials.json', 'utf8'));
+const TOKEN = Object.values(creds.tokens)[0].access_token;
 ```
 
 ### Finding the project ID
@@ -136,24 +143,21 @@ If no project prefix is present, list all projects: `GET /projects` and use the 
 
 ### Making API calls
 
-Use `node -e` with `fetch()` for all HTTP requests:
+Always use `node --input-type=module -e` for API calls (enables `import` + top-level `await`):
 
 ```bash
-# GET example — read the map
-node -e "
-  const url = '${EDEN_API_URL}/projects/${PROJECT_ID}/map';
-  const r = await fetch(url, { headers: { Authorization: 'Bearer ${TOKEN}' } });
-  console.log(JSON.stringify(await r.json(), null, 2));
-"
+node --input-type=module -e "
+  import { readFileSync } from 'fs';
+  const creds = JSON.parse(readFileSync(process.env.HOME + '/.eve/credentials.json', 'utf8'));
+  const TOKEN = Object.values(creds.tokens)[0].access_token;
+  const API = '${EDEN_API_URL}';
+  const PID = '${PROJECT_ID}';
 
-# POST example — create a persona
-node -e "
-  const r = await fetch('${EDEN_API_URL}/projects/${PROJECT_ID}/personas', {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ${TOKEN}', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code: 'DOE', name: 'DevOps Engineer', color: '#FF6B6B' })
-  });
-  console.log(JSON.stringify(await r.json(), null, 2));
+  // GET — read map
+  const map = await (await fetch(API + '/projects/' + PID + '/map', {
+    headers: { Authorization: 'Bearer ' + TOKEN }
+  })).json();
+  console.log(JSON.stringify(map, null, 2));
 "
 ```
 
