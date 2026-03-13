@@ -414,6 +414,17 @@ export class ChangesetsService {
       // -- Tasks -----------------------------------------------------------
 
       case 'task/create': {
+        // Auto-generate display_id if not provided
+        let displayId = afterState.display_id;
+        if (!displayId) {
+          const { rows: countRows } = await client.query<{ cnt: string }>(
+            'SELECT count(*)::text AS cnt FROM tasks WHERE project_id = $1',
+            [projectId],
+          );
+          const nextNum = parseInt(countRows[0].cnt, 10) + 1;
+          displayId = `TSK-${nextNum}`;
+        }
+
         const { rows } = await client.query(
           `INSERT INTO tasks
                   (org_id, project_id, display_id, title, user_story,
@@ -423,7 +434,7 @@ export class ChangesetsService {
           [
             ctx.org_id,
             projectId,
-            afterState.display_id ?? null,
+            displayId,
             afterState.title ?? 'Untitled',
             afterState.user_story ?? null,
             JSON.stringify(afterState.acceptance_criteria ?? []),
@@ -530,6 +541,14 @@ export class ChangesetsService {
       // -- Activities ------------------------------------------------------
 
       case 'activity/create': {
+        let actDisplayId = afterState.display_id;
+        if (!actDisplayId) {
+          const { rows: actCount } = await client.query<{ cnt: string }>(
+            'SELECT count(*)::text AS cnt FROM activities WHERE project_id = $1',
+            [projectId],
+          );
+          actDisplayId = `ACT-${parseInt(actCount[0].cnt, 10) + 1}`;
+        }
         const { rows } = await client.query(
           `INSERT INTO activities
                   (org_id, project_id, display_id, name, sort_order)
@@ -538,7 +557,7 @@ export class ChangesetsService {
           [
             ctx.org_id,
             projectId,
-            afterState.display_id ?? null,
+            actDisplayId,
             afterState.name ?? 'Untitled',
             afterState.sort_order ?? 0,
           ],
@@ -550,6 +569,14 @@ export class ChangesetsService {
       // -- Steps -----------------------------------------------------------
 
       case 'step/create': {
+        let stepDisplayId = afterState.display_id;
+        if (!stepDisplayId) {
+          const { rows: stepCount } = await client.query<{ cnt: string }>(
+            'SELECT count(*)::text AS cnt FROM steps WHERE project_id = $1',
+            [projectId],
+          );
+          stepDisplayId = `STP-${parseInt(stepCount[0].cnt, 10) + 1}`;
+        }
         const { rows } = await client.query(
           `INSERT INTO steps
                   (org_id, project_id, activity_id, display_id, name, sort_order)
@@ -559,7 +586,7 @@ export class ChangesetsService {
             ctx.org_id,
             projectId,
             afterState.activity_id ?? null,
-            afterState.display_id ?? null,
+            stepDisplayId,
             afterState.name ?? 'Untitled',
             afterState.sort_order ?? 0,
           ],
