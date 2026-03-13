@@ -33,12 +33,22 @@ Each question must include:
 - `category`: one of `conflict`, `gap`, `duplicate`, `assumption`
 - `references`: array of `{ entity_type, entity_id }` linking to affected entities
 
-## Storm Prevention
+## Storm Prevention & Semantic Deduplication
 
-- Read recent questions before creating new ones — do NOT duplicate issues already raised in the last 24 hours
-- This workflow does NOT fire for changesets created by `question-evolution` or `alignment` agents (filtered by the `source` field in the workflow trigger)
-- Limit to the 5 most impactful issues per scan — quality over quantity
-- Include a confidence score in each question's text (e.g. "High confidence: these ACs directly contradict")
+Before creating ANY question, you MUST check for semantic overlap with existing questions:
+
+1. **Fetch ALL open questions** via `GET /api/projects/:projectId/questions?status=open` (not just last 24h)
+2. **For each candidate question**, compare against every existing question:
+   - If the core concern is the same (even phrased differently), DO NOT create it
+   - "Are persona assignments complete?" overlaps with "Which personas own which tasks?"
+   - "Is the task scope clear?" overlaps with "What are the boundaries of this task?"
+   - Two questions about the same entity referencing the same gap = duplicate
+3. **Only create a question if it raises a genuinely new concern** that no existing question addresses
+4. Limit to the **3 most impactful issues** per scan — ruthlessly prioritize quality over quantity
+5. Include a confidence score in each question's text (e.g. "High confidence: these ACs directly contradict")
+6. This workflow does NOT fire for changesets created by `question-evolution` or `alignment` agents (filtered by the `source` field in the workflow trigger)
+
+**The dedup check is mandatory.** If you skip it and create overlapping questions, the system floods with noise. When in doubt, do NOT create the question.
 
 ## Rules
 

@@ -19,7 +19,7 @@ Decide which path to take:
 | Substantial document attached (multi-page, design doc, spec, PRD, RFC) — regardless of phrasing | Full panel review | `prepared` |
 | Multiple files or complex document | Full panel review | `prepared` |
 | Audio/video file (any intent) | Transcribe first, then decide | depends |
-| Map edit request ("add step", "move task", "create activity") | Call Eden API directly (see Eden API Access) | `success` |
+| Map edit request ("add step", "move task", "create activity") | Read map, then create a changeset (see Map Edit via Changeset) | `success` |
 | "check alignment" / "find conflicts" / "scan for gaps" | Child job → `alignment` agent | `success` |
 | Simple question (no files) | Answer directly | `success` |
 | Small file + narrow factual question ("what format is this?", "who wrote this?") | Answer directly | `success` |
@@ -177,12 +177,16 @@ node --input-type=module -e "
 | POST | `/projects/:id/changesets` | Create changeset `{title, reasoning, source, actor, items[]}` |
 | GET | `/projects/:id/changesets` | List changesets |
 
-### Workflow for map edits
+### Map Edit via Changeset
+
+**All map mutations MUST go through changesets.** Never create entities directly — always create a changeset so changes go through the review gate.
 
 1. `GET /projects/:id/map` — read current state
-2. Match the user's intent to API operations
-3. Call the appropriate endpoints to create/modify entities
-4. Report back what was done
+2. Match the user's intent to changeset operations (task/create, persona/create, activity/create, step/create, task/update, task/delete)
+3. `POST /projects/:id/changesets` — create a changeset with `source: "map-chat"`, `actor: "pm-coordinator"`, and items describing each operation
+4. Report back: "Created changeset with N items for review"
+
+Do NOT call entity creation endpoints (POST /personas, POST /tasks, etc.) directly. All mutations flow through changesets.
 
 ## Rules
 
@@ -191,4 +195,4 @@ node --input-type=module -e "
 - For the panel path, your prepare phase does the heavy lifting (transcription, extraction). Experts get pre-digested content via the coordination thread.
 - For the solo path, be concise and helpful. You're a senior PM, not a router.
 - Always check for attachments before deciding the path — files change everything.
-- For map edits: call the Eden API directly. Do NOT modify local files — the data lives in the database.
+- For map edits: ALWAYS create a changeset via `POST /projects/:id/changesets`. Never create entities directly — all map mutations must go through the changeset review gate.

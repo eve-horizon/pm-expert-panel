@@ -4,22 +4,27 @@
 **Parallel Safe:** No
 **LLM Required:** Yes
 
-Verifies that expert panel review findings can be acted on — closing the loop from review → changeset → map update.
+Verifies that expert panel review findings can be acted on — closing the loop from review → changeset → map update. Expert panel reviews are delivered inline as chat messages (the coordinator synthesizes expert responses in the conversation thread).
 
 ## Prerequisites
 
-- Scenario 09 passed — expert panel review exists with identified issues
+- Scenario 09 passed — expert panel review delivered via chat
 
 ## Steps
 
-### 1. Read Expert Recommendations
+### 1. Read Expert Recommendations from Chat
 
 ```bash
-REVIEW_ID=$(api "$EDEN_URL/api/projects/$PROJECT_ID/reviews" | jq -r '.[0].id')
-RECS=$(api "$EDEN_URL/api/projects/$PROJECT_ID/reviews/$REVIEW_ID" | jq '.synthesis')
-echo "Recommendations:"
-echo "$RECS" | head -50
+# List threads to find the review thread from scenario 09
+THREADS=$(api "$EDEN_URL/api/projects/$PROJECT_ID/chat/threads")
+REVIEW_THREAD_ID=$(echo "$THREADS" | jq -r '[.[] | select(.title | test("[Rr]eview|[Aa]nalys"))] | .[0].id')
+
+# Get messages from the review thread — the synthesis is in the coordinator's final message
+MESSAGES=$(api "$EDEN_URL/api/chat/threads/$REVIEW_THREAD_ID/messages")
+echo "$MESSAGES" | jq '.[-1].content' | head -50
 ```
+
+**Expected:** Coordinator's synthesis message with expert recommendations (consensus, dissent, risks, actions).
 
 ### 2. Act on a Recommendation via Chat
 
@@ -65,8 +70,8 @@ api "$EDEN_URL/api/projects/$PROJECT_ID/map" | jq '.activities[] | select(.name 
 
 ## Success Criteria
 
-- [ ] Review recommendations are actionable
-- [ ] Chat request based on recommendation creates changeset
+- [ ] Expert synthesis available in chat thread from scenario 09
+- [ ] Chat request based on recommendation creates changeset (not direct mutation)
 - [ ] Changeset contains testing-related entities
 - [ ] Acceptance adds testing activity to the map
-- [ ] Full loop: review → chat → changeset → map update
+- [ ] Full loop: review (chat) → chat request → changeset → map update

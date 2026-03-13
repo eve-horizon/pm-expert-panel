@@ -93,7 +93,7 @@ echo "$CS_LIST" | jq '.[0] | {title, source, item_count: (.items | length)}'
 api "$EDEN_URL/api/projects/$PROJECT_ID/sources/$SOURCE_ID" | jq '{status, filename}'
 ```
 
-**Expected:** Status is `synthesized` (or `extracted` if synthesis is still running).
+**Expected:** Status is `done` (updated by Eve callback when pipeline completes). If still `processing`, the pipeline may still be running — wait and retry.
 
 ## Debugging
 
