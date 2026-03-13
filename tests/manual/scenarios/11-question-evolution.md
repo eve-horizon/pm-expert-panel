@@ -12,30 +12,26 @@ Tests the question evolution flow: answering an open question triggers the quest
 
 ## Steps
 
-### 1. Answer the Cross-Cutting Question
+### 1. Evolve the Cross-Cutting Question
+
+The `/evolve` endpoint answers the question and triggers the workflow in one call. Routes are **not** project-scoped — use `/questions/:id/evolve`.
 
 ```bash
 # Q2: "Should the expert panel run for every document or only on explicit request?"
-api -X PATCH "$EDEN_URL/api/projects/$PROJECT_ID/questions/$Q2_ID" \
-  -d '{"answer": "The expert panel should run automatically for any document over 5 pages. For shorter documents, the coordinator should handle it solo. Users can always explicitly request a full panel review regardless of document length.", "status": "answered"}'
+EVOLVE=$(api -X POST "$EDEN_URL/api/questions/$Q2_ID/evolve" \
+  -d '{"answer": "The expert panel should run automatically for any document over 5 pages. For shorter documents, the coordinator should handle it solo. Users can always explicitly request a full panel review regardless of document length."}')
+echo "$EVOLVE" | jq '{status, answer}'
 ```
 
-**Expected:** Question updated to `answered`.
+**Expected:** Question status changes to `answered`. Eve `question.answered` event fires. Question-agent job starts.
 
-### 2. Trigger Evolution
+> **API note:** The evolve endpoint is `POST /questions/:id/evolve` (not project-scoped). It only accepts `{answer}` — it sets status to `answered` automatically. Using the project-scoped route will return 404.
 
-```bash
-EVOLVE=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/questions/$Q2_ID/evolve")
-echo "$EVOLVE" | jq '{status}'
-```
-
-**Expected:** Evolution triggered. Eve `question.answered` event fires. Question-agent job starts.
-
-### 3. Wait for Agent Response
+### 2. Wait for Agent Response
 
 ```bash
 for i in $(seq 1 24); do
-  Q_JOBS=$(eve job list --project eden --json 2>/dev/null | jq '[.[] | select(.description | test("question"; "i"))]')
+  Q_JOBS=$(eve job list --project eden --json 2>/dev/null | jq '[.jobs[] | select(.title | test("question"; "i"))]')
   [ "$(echo "$Q_JOBS" | jq 'length')" -gt 0 ] && break
   sleep 5
 done
@@ -46,7 +42,7 @@ eve job follow $JOB_ID
 
 **Expected:** Question-agent evaluates the answer and decides whether to create a changeset.
 
-### 4. Check for Resulting Changeset
+### 3. Check for Resulting Changeset
 
 ```bash
 CS=$(api "$EDEN_URL/api/projects/$PROJECT_ID/changesets?source=question-evolution" | jq '.[0]')

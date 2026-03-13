@@ -76,7 +76,7 @@ workflows:
           name: question-agent
     hints:
       timeout_seconds: 300
-      permission_policy: auto_edit
+      permission_policy: yolo
 
   alignment-check:
     trigger:
@@ -91,7 +91,7 @@ workflows:
           name: alignment
     hints:
       timeout_seconds: 300
-      permission_policy: auto_edit
+      permission_policy: yolo
 
   ingestion-pipeline:
     trigger:
@@ -114,7 +114,7 @@ workflows:
           name: synthesis
     hints:
       timeout_seconds: 900
-      permission_policy: auto_edit
+      permission_policy: yolo
 
 pipelines:
   deploy:

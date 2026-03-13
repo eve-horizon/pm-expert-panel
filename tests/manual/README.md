@@ -13,7 +13,7 @@ eve auth login
 # Set environment
 export EVE_API_URL=https://api.eh1.incept5.dev
 export ORG_SLUG=incept5
-export EDEN_URL=https://eden.${ORG_SLUG}-eden-sandbox.eh1.incept5.dev
+export EDEN_URL=https://web.${ORG_SLUG}-eden-sandbox.eh1.incept5.dev
 export PROJECT_SLUG=manual-test
 export LC_PROJECT_SLUG=lifecycle-test
 export EVE_CLI_PROJECT=eden
@@ -94,12 +94,73 @@ done
 
 Each scenario has a **Success Criteria** checklist. All checkboxes must pass for the scenario to be considered successful. Commands should complete without error, assertions should match expected output.
 
+## Fail-Fast for LLM Scenarios (08–14)
+
+LLM scenarios depend on Eve agents. Jobs can stall for minutes before you notice. Use these patterns to fail fast.
+
+### Watch a Job in Real-Time
+
+```bash
+# Follow logs as they stream (Ctrl-C to stop)
+eve job follow $JOB_ID
+
+# Tail structured logs for a specific step
+eve job logs $JOB_ID 2>&1 | tail -f
+```
+
+### Quick Health Check (run between steps)
+
+```bash
+# One-liner: show all recent jobs with phase + age
+eve job list --project eden --json 2>/dev/null | jq '
+  [.jobs | sort_by(.created_at) | reverse | .[:10][] |
+   {id, title: .title[0:50], phase, age: (now - (.created_at | fromdateiso8601) | . / 60 | floor | tostring + "m")}]'
+```
+
+### Abort Signals — Stop Waiting When You See These
+
+| Signal | What It Means | Action |
+|--------|--------------|--------|
+| `"requires approval"` in logs (>3x) | Permission policy too restrictive | Abort, set `permission_policy: yolo` in manifest, redeploy |
+| Job active >5min with no new log lines | Agent stuck or rate-limited | `eve job diagnose $JOB_ID`, check for errors |
+| `"undefined"` in coordinator message | Wrong request body field name | Fix caller — Eden chat expects `{message:}` not `{content:}` |
+| `mcp_servers: []` in init log | `with_apis` tools not provisioned | Platform issue — use `yolo` so agent can fall back to curl |
+| Expert jobs all `cancelled` | Coordinator took solo path | May be correct — check coordinator result for quality |
+
+### Structured Polling Loop
+
+```bash
+# Poll a workflow job with timeout and abort detection
+JOB_ID="eden-XXXX"
+TIMEOUT=300  # seconds
+START=$(date +%s)
+
+while true; do
+  ELAPSED=$(( $(date +%s) - START ))
+  [ $ELAPSED -gt $TIMEOUT ] && echo "TIMEOUT after ${TIMEOUT}s" && break
+
+  PHASE=$(eve job show $JOB_ID 2>&1 | grep "Phase:" | awk '{print $2}')
+  echo "[${ELAPSED}s] Phase: $PHASE"
+
+  case $PHASE in
+    done) echo "SUCCESS"; break ;;
+    cancelled|failed) echo "FAILED"; eve job diagnose $JOB_ID 2>&1; break ;;
+  esac
+
+  # Check for permission blocks (abort signal)
+  BLOCKS=$(eve job logs $JOB_ID 2>&1 | grep -c "requires approval" || true)
+  [ "$BLOCKS" -gt 3 ] && echo "ABORT: agent stuck on permissions ($BLOCKS denials)" && break
+
+  sleep 10
+done
+```
+
 ## Observability
 
 ### Tier 1: User CLI (Always Try First)
 
 ```bash
-eve job list --project eden --json | jq '.[] | {id, description, phase}'
+eve job list --project eden --json 2>/dev/null | jq '.jobs[] | {id, description, phase}'
 eve job follow $JOB_ID
 eve job diagnose $JOB_ID
 eve system status
@@ -136,7 +197,7 @@ api "$EDEN_URL/api/projects/$PROJECT_ID/map" | jq '{
 # Required for all scenarios
 export EVE_API_URL=https://api.eh1.incept5.dev
 export ORG_SLUG=incept5
-export EDEN_URL=https://eden.${ORG_SLUG}-eden-sandbox.eh1.incept5.dev
+export EDEN_URL=https://web.${ORG_SLUG}-eden-sandbox.eh1.incept5.dev
 export EVE_CLI_PROJECT=eden
 export EVE_CLI_ENV=sandbox
 export PROJECT_SLUG=manual-test

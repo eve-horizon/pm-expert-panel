@@ -13,82 +13,66 @@
 
 ## Steps
 
-### 1. Create a Chat Thread
+### 1. Create a Chat Thread with PRD Review Request
+
+The chat API creates a thread and sends the first message in one call. The field is `message` (not `content`).
 
 ```bash
-THREAD=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/chat/threads" \
-  -d '{"title": "Expert panel review of Eden PRD"}')
-THREAD_ID=$(echo "$THREAD" | jq -r '.id')
-echo "Thread: $THREAD_ID"
+PRD_EXCERPT=$(head -200 docs/prd/high-level-summary.md)
+MSG_PAYLOAD=$(jq -n --arg excerpt "$PRD_EXCERPT" \
+  '{message: ("Please review this requirements summary and give me a full expert panel assessment. What are we missing? What are the risks? Are we ready to build?\n\n---\n\n" + $excerpt)}')
+THREAD=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/chat/threads" -d "$MSG_PAYLOAD")
+THREAD_ID=$(echo "$THREAD" | jq -r '.thread_id')
+PARENT_JOB=$(echo "$THREAD" | jq -r '.job_ids[0]')
+echo "Thread: $THREAD_ID  Parent job: $PARENT_JOB"
 ```
 
-**Expected:** Thread created, ready for messages.
+**Expected:** Thread created with message. Eve chat routing activates `team:expert-panel`. Response contains `thread_id` and `job_ids` (8 jobs: 1 coordinator + 7 experts in backlog).
 
-### 2. Send Message with Document Reference
+> **API note:** The chat API field is `message`, not `content`. The response returns `{thread_id, job_ids}`, not `{id}`.
 
-```bash
-# Read the PRD content
-PRD_EXCERPT=$(cat docs/prd/high-level-summary.md | head -200)
-MSG_PAYLOAD=$(jq -n --arg excerpt "$PRD_EXCERPT" '{content: ("Please review this requirements summary and give me a full expert panel assessment. What are we missing? What are the risks? Are we ready to build?\n\n---\n\n" + $excerpt)}')
-MSG=$(api -X POST "$EDEN_URL/api/chat/threads/$THREAD_ID/messages" -d "$MSG_PAYLOAD")
-MSG_ID=$(echo "$MSG" | jq -r '.id')
-echo "Message sent: $MSG_ID"
-```
+### 2. (Combined with Step 1)
 
-**Expected:** Message accepted. Eve chat routing activates `team:expert-panel`.
+Thread creation and message sending happen in a single call to `POST /projects/:id/chat/threads`.
 
-### 3. Monitor Coordinator Phase 1 (Triage)
+### 3. Monitor Coordinator and Expert Fan-Out
+
+The job IDs are returned by step 1. The parent job is the coordinator; children `.1` through `.7` are the 7 experts.
 
 ```bash
-# Watch for jobs
-for i in $(seq 1 12); do
-  JOBS=$(eve job list --project eden --status active --json 2>/dev/null)
-  JOB_COUNT=$(echo "$JOBS" | jq 'length')
-  echo "Active jobs: $JOB_COUNT ($i)"
-  [ "$JOB_COUNT" -gt 0 ] && break
-  sleep 5
-done
+# Poll with abort detection (see README fail-fast section)
+TIMEOUT=360; START=$(date +%s)
+while true; do
+  ELAPSED=$(( $(date +%s) - START ))
+  [ $ELAPSED -gt $TIMEOUT ] && echo "TIMEOUT" && break
 
-# Identify coordinator job
-COORD_JOB=$(echo "$JOBS" | jq -r '.[] | select(.description | test("pm|coordinator"; "i")) | .id')
-echo "Coordinator job: $COORD_JOB"
-```
+  PARENT_PHASE=$(eve job show $PARENT_JOB 2>&1 | grep "Phase:" | awk '{print $2}')
+  ACTIVE=0; DONE=0; CANCELLED=0
+  for s in .1 .2 .3 .4 .5 .6 .7; do
+    P=$(eve job show "${PARENT_JOB}${s}" 2>&1 | grep "Phase:" | awk '{print $2}')
+    case $P in active) ACTIVE=$((ACTIVE+1));; done) DONE=$((DONE+1));; cancelled) CANCELLED=$((CANCELLED+1));; esac
+  done
+  echo "[${ELAPSED}s] Parent: $PARENT_PHASE | Experts — active:$ACTIVE done:$DONE cancelled:$CANCELLED"
 
-**Expected:** Coordinator job starts. It reads the message, detects substantial document + analysis intent.
+  [ "$PARENT_PHASE" = "done" ] && [ "$DONE" -ge 7 ] && echo "Panel complete!" && break
+  [ "$CANCELLED" -ge 7 ] && echo "Solo path — coordinator handled it alone" && break
 
-### 4. Watch Expert Fan-Out (Phase 2)
+  # Abort if agent stuck on permissions
+  BLOCKS=$(eve job logs $PARENT_JOB 2>&1 | grep -c "requires approval" || true)
+  [ "$BLOCKS" -gt 3 ] && echo "ABORT: permission blocks ($BLOCKS)" && break
 
-```bash
-# After coordinator returns "prepared", 7 expert jobs should start
-for i in $(seq 1 24); do
-  ALL_JOBS=$(eve job list --project eden --json 2>/dev/null)
-  JOB_COUNT=$(echo "$ALL_JOBS" | jq 'length')
-  echo "Total jobs: $JOB_COUNT ($i)"
-  [ "$JOB_COUNT" -ge 8 ] && break  # 1 coordinator + 7 experts
-  sleep 5
-done
-
-echo "$ALL_JOBS" | jq '.[] | {id, description, phase}'
-```
-
-**Expected:**
-- 8 jobs total: 1 coordinator + 7 experts
-- Experts run in parallel (all active simultaneously)
-- Expert slugs: tech-lead, ux-advocate, business-analyst, gtm-advocate, risk-assessor, qa-strategist, devil-s-advocate
-
-### 5. Wait for Synthesis (Phase 3)
-
-```bash
-# Wait for all jobs to complete
-for i in $(seq 1 36); do
-  DONE=$(eve job list --project eden --json 2>/dev/null | jq '[.[] | select(.phase == "done")] | length')
-  echo "Completed jobs: $DONE ($i)"
-  [ "$DONE" -ge 8 ] && break
   sleep 10
 done
 ```
 
-**Expected:** All 8 jobs complete within ~6 minutes (coordinator triage + 7 parallel experts + coordinator synthesis).
+**Expected (panel path):**
+- Coordinator returns `prepared` → 7 expert jobs activate in parallel
+- All 8 complete within ~6 minutes
+
+**Acceptable (solo path):**
+- Coordinator returns `success` → all 7 experts auto-cancelled
+- Coordinator response contains all expert perspectives inline
+- This happens when the coordinator decides it can handle the request alone
 
 ### 6. Verify Review Created
 
