@@ -52,7 +52,7 @@ Before creating ANY question, you MUST check for semantic overlap with existing 
 
 ## Eden API Access
 
-**`curl` is NOT available.** Use `node --input-type=module -e` with `fetch()` for all API calls.
+Use `curl` or `node` with `fetch()` for API calls.
 
 **IMPORTANT: The Eden API has NO `/api/` prefix.** Routes are directly at the root: `/projects`, `/health`, `/questions/:id`, etc. Do NOT prepend `/api/` to any endpoint.
 
@@ -70,7 +70,25 @@ The workflow input (in your task description) contains the event payload with `p
 2. Extract `payload.project_id` — this is the Eden project UUID
 3. If payload is null or missing project_id, fall back to listing projects and picking the one with the most data
 
-### Helper Pattern
+### Simple API Calls
+
+```bash
+# List projects
+curl -s "$EVE_APP_API_URL_API/projects" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+
+# Read map (when you already have PID)
+curl -s "$EVE_APP_API_URL_API/projects/$PID/map" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+
+# Read open questions (when you already have PID)
+curl -s "$EVE_APP_API_URL_API/projects/$PID/questions?status=open" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+```
+
+### Multi-Step Pattern (discover project + read map + questions)
+
+When you need to discover the Eden project ID and then read multiple resources, use a node script:
 
 ```bash
 node --input-type=module -e "
@@ -80,17 +98,14 @@ node --input-type=module -e "
 
   // 1. Find the Eden project ID from workflow input payload or by listing projects
   let PID;
-  // Try to use project_id from workflow event payload (passed as arg or env)
   const payloadProjectId = process.argv[2]; // pass as CLI arg if extracted from workflow input
   if (payloadProjectId) {
     PID = payloadProjectId;
   } else {
-    // Fallback: list projects and pick the one with the most activities
     const projects = await (await fetch(API + '/projects', { headers })).json();
     if (projects.length === 1) {
       PID = projects[0].id;
     } else {
-      // Find the project with actual map data
       for (const p of projects) {
         const m = await (await fetch(API + '/projects/' + p.id + '/map', { headers })).json();
         if (m.activities && m.activities.length > 0) { PID = p.id; break; }
@@ -112,24 +127,20 @@ node --input-type=module -e "
 ### Creating Questions
 
 ```bash
-node --input-type=module -e "
-  const API = process.env.EVE_APP_API_URL_API;
-  const TOKEN = process.env.EVE_JOB_TOKEN;
-  const headers = { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
-  const projects = await (await fetch(API + '/projects', { headers })).json();
-  const PID = projects[0].id;
+# Write the question payload to a temp file, then POST it
+cat > /tmp/question.json << 'PAYLOAD'
+{
+  "question": "Are persona assignments complete for all tasks?",
+  "priority": "medium",
+  "category": "gap",
+  "references": [{ "entity_type": "activity", "entity_id": "ACT-1" }]
+}
+PAYLOAD
 
-  const question = {
-    question: 'Are persona assignments complete for all tasks?',
-    priority: 'medium',
-    category: 'gap',
-    references: [{ entity_type: 'activity', entity_id: 'ACT-1' }]
-  };
-  const res = await fetch(API + '/projects/' + PID + '/questions', {
-    method: 'POST', headers, body: JSON.stringify(question)
-  });
-  console.log(await res.json());
-"
+curl -s -X POST "$EVE_APP_API_URL_API/projects/$PID/questions" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d @/tmp/question.json | jq .
 ```
 
 ### Key Endpoints

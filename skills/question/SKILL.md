@@ -40,7 +40,7 @@ Always create changesets with:
 
 ## Eden API Access
 
-**`curl` is NOT available.** Use `node --input-type=module -e` with `fetch()` for all API calls.
+Use `curl` or `node` with `fetch()` for API calls.
 
 **IMPORTANT: The Eden API has NO `/api/` prefix.** Routes are directly at the root: `/projects`, `/health`, `/changesets/:id`, etc. Do NOT prepend `/api/` to any endpoint.
 
@@ -58,7 +58,41 @@ The workflow input (in your task description) contains the event payload with `p
 2. Extract `payload.project_id` — this is the Eden project UUID
 3. If payload is null or missing project_id, fall back to listing projects and picking the one with the most data
 
-### Helper Pattern
+### Simple API Calls
+
+```bash
+# List projects
+curl -s "$EVE_APP_API_URL_API/projects" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+
+# Read map (when you already have PID)
+curl -s "$EVE_APP_API_URL_API/projects/$PID/map" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+
+# Read answered questions
+curl -s "$EVE_APP_API_URL_API/projects/$PID/questions?status=answered" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+
+# Create a changeset (write JSON to temp file first for large payloads)
+cat > /tmp/changeset.json << 'PAYLOAD'
+{
+  "title": "Map update from Q-5",
+  "reasoning": "...",
+  "source": "question-evolution",
+  "actor": "question-agent",
+  "items": [...]
+}
+PAYLOAD
+
+curl -s -X POST "$EVE_APP_API_URL_API/projects/$PID/changesets" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d @/tmp/changeset.json | jq .
+```
+
+### Multi-Step Pattern (discover project + read question + map)
+
+When you need to discover the Eden project ID and then read multiple resources, use a node script:
 
 ```bash
 node --input-type=module -e "

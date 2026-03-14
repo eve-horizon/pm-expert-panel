@@ -24,7 +24,7 @@ Example: if `index.json` shows `"local_path": "ingest/ing_abc123/document.md"`, 
 **Do NOT:**
 - Call any Eden API endpoints — the document is local, not remote
 - Try to download from S3, presigned URLs, or the Eve platform
-- Use curl (it's not available in the container)
+- Call any API — the document is local, not remote
 - Create source records or confirm ingestion — that causes duplicate pipelines
 - Prepend `/api/` to any URL — the Eden API has no `/api/` prefix
 

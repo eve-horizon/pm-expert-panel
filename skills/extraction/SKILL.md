@@ -23,7 +23,7 @@ The document is a file in the git repo. Find it by:
 
 **Do NOT:**
 - Check `.eve/resources/index.json` — this step has no materialized resources
-- Use curl (it's not available in the container)
+- Call any API — this step only processes text
 - Call the Eden API or any external API — this step only processes text
 - Try to download from S3 or presigned URLs
 

@@ -116,7 +116,7 @@ After expert panel completes synthesis, additionally:
 
 ## Eden API Access
 
-**`curl` is NOT available.** Use `node --input-type=module -e` with `fetch()` for all API calls.
+Use `curl` or `node` with `fetch()` for API calls.
 
 **IMPORTANT: The Eden API has NO `/api/` prefix.** Routes are directly at the root: `/projects`, `/health`, `/changesets/:id`, etc. Do NOT prepend `/api/` to any endpoint.
 
@@ -147,7 +147,37 @@ Chat messages may include the Eden project UUID in a prefix: `[eden-project:UUID
 
 If no project prefix is present, list all projects via `GET /projects` and use the first/only one.
 
-### Making API calls
+### Simple API Calls
+
+```bash
+# List projects
+curl -s "$EVE_APP_API_URL_API/projects" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+
+# Read map (when you already have PID)
+curl -s "$EVE_APP_API_URL_API/projects/$PID/map" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+
+# Create a changeset (write JSON to temp file first for large payloads)
+cat > /tmp/changeset.json << 'PAYLOAD'
+{
+  "title": "...",
+  "reasoning": "...",
+  "source": "map-chat",
+  "actor": "pm-coordinator",
+  "items": [...]
+}
+PAYLOAD
+
+curl -s -X POST "$EVE_APP_API_URL_API/projects/$PID/changesets" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d @/tmp/changeset.json | jq .
+```
+
+### Multi-Step Pattern (discover project + read map)
+
+When you need to discover the Eden project ID and then read data, use a node script:
 
 ```bash
 node --input-type=module -e "
@@ -165,7 +195,6 @@ node --input-type=module -e "
     if (projects.length === 1) {
       PID = projects[0].id;
     } else {
-      // Find the project with actual map data
       for (const p of projects) {
         const m = await (await fetch(API + '/projects/' + p.id + '/map', { headers })).json();
         if (m.activities && m.activities.length > 0) { PID = p.id; break; }

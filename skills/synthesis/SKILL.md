@@ -9,31 +9,22 @@ You compare extracted requirements against the current story map and create a ch
 
 ## CRITICAL: API Access
 
-**`curl` is NOT available.** Use `node --input-type=module -e` with `fetch()` for all API calls.
-
 **The Eden API has NO `/api/` prefix.** Routes are at the root: `/projects`, `/health`, `/changesets/:id`, etc.
 
 **`payload.project_id` in the workflow input is the EVE project ID (e.g., `proj_xxx`), NOT the Eden project UUID.** You MUST call `GET /projects` on the Eden API to discover Eden's internal project UUIDs. Never use `EVE_PROJECT_ID` or `payload.project_id` directly in Eden API URLs.
 
 ### Connect to API and Find Project
 
-Use this exact pattern — it handles project discovery in a single script:
+Use `curl` with the platform-injected env vars:
 
 ```bash
-node --input-type=module -e "
-  const API = process.env.EVE_APP_API_URL_API;
-  const TOKEN = process.env.EVE_JOB_TOKEN;
-  const headers = { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
+# List projects to get Eden's internal UUID
+curl -s "$EVE_APP_API_URL_API/projects" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
 
-  // List projects and find the right one
-  const projects = await (await fetch(API + '/projects', { headers })).json();
-  // Use the most recent project (or the only one)
-  const PID = projects[0].id;
-
-  // Read current map state
-  const map = await (await fetch(API + '/projects/' + PID + '/map', { headers })).json();
-  console.log(JSON.stringify({ pid: PID, map }, null, 2));
-"
+# Read current map state (replace PID with the UUID from above)
+curl -s "$EVE_APP_API_URL_API/projects/$PID/map" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
 ```
 
 ### Find the Document
@@ -54,37 +45,31 @@ The document is a file in the git repo. Search for it by filename using Glob (e.
 
 ### Create Changeset
 
-**Important**: For large changesets, write the script to a temp file first to avoid inline quote conflicts:
+For the changeset POST, write the JSON payload to a temp file to avoid quote escaping issues:
 
 ```bash
-cat > /tmp/create-changeset.mjs << 'SCRIPT'
-const API = process.env.EVE_APP_API_URL_API;
-const TOKEN = process.env.EVE_JOB_TOKEN;
-const headers = { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
-const PID = process.argv[2];
-
-const changeset = {
-  title: 'Requirements from document-name.md',
-  reasoning: 'Extracted from ingested document',
-  source: 'ingestion',
-  actor: 'synthesis-agent',
-  items: [
+cat > /tmp/changeset.json << 'JSON'
+{
+  "title": "Requirements from document-name.md",
+  "reasoning": "Extracted from ingested document",
+  "source": "ingestion",
+  "actor": "synthesis-agent",
+  "items": [
     {
-      entity_type: 'persona',
-      operation: 'create',
-      after_state: { code: 'PM', name: 'Product Manager', description: '...' },
-      description: 'New persona identified in document',
-      display_reference: 'PER-PM'
+      "entity_type": "persona",
+      "operation": "create",
+      "after_state": { "code": "PM", "name": "Product Manager", "description": "..." },
+      "description": "New persona identified in document",
+      "display_reference": "PER-PM"
     }
-    // ... more items
   ]
-};
-const res = await fetch(API + '/projects/' + PID + '/changesets', {
-  method: 'POST', headers, body: JSON.stringify(changeset)
-});
-console.log(JSON.stringify(await res.json(), null, 2));
-SCRIPT
-node /tmp/create-changeset.mjs 'EDEN_PROJECT_UUID_HERE'
+}
+JSON
+
+curl -s -X POST "$EVE_APP_API_URL_API/projects/$PID/changesets" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d @/tmp/changeset.json | jq .
 ```
 
 ### Key Endpoints

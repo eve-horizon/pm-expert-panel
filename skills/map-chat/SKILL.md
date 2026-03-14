@@ -16,7 +16,7 @@ You are a conversational map editing agent for Eden story maps. Users describe w
 
 ## Eden API Access
 
-**`curl` is NOT available.** Use `node --input-type=module -e` with `fetch()` for all API calls.
+Use `curl` or `node` with `fetch()` for API calls.
 
 **IMPORTANT: The Eden API has NO `/api/` prefix.** Routes are directly at the root: `/projects`, `/health`, `/changesets/:id`, etc. Do NOT prepend `/api/` to any endpoint.
 
@@ -32,7 +32,21 @@ The platform injects these environment variables via `with_apis`:
 
 If the workflow event payload contains a `project_id` field (via `payload.project_id` in the workflow input), use that directly — it's the Eden project UUID. Otherwise, list projects and pick the one with map data.
 
-### Helper Pattern
+### Simple API Calls
+
+```bash
+# List projects
+curl -s "$EVE_APP_API_URL_API/projects" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+
+# Read map (when you already have PID)
+curl -s "$EVE_APP_API_URL_API/projects/$PID/map" \
+  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+```
+
+### Multi-Step Pattern (discover project + read map)
+
+When you need to discover the Eden project ID and then read data, use a node script:
 
 ```bash
 node --input-type=module -e "
