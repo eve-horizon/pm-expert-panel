@@ -2,7 +2,7 @@
 
 **Time:** ~10 minutes
 **Parallel Safe:** No
-**LLM Required:** Yes (Eve agents — 1 coordinator + 7 experts)
+**LLM Required:** Yes (Eve agents — 1 coordinator + up to 7 experts)
 
 **This is the core dogfooding scenario.** We send Eden's own PRD to the expert panel via chat, watch the staged council dispatch, and verify we get a comprehensive multi-perspective review.
 
@@ -13,29 +13,29 @@
 
 ## Steps
 
-### 1. Create a Chat Thread with PRD Review Request
+### 1. Send PRD Review Request via Chat Simulate
 
-The chat API creates a thread and sends the first message in one call. The field is `message` (not `content`).
+The Eve API's chat simulate endpoint handles routing to the correct team. Use the **Eve API URL** (not Eden API) and the **Eve project ID** (not Eden project UUID).
 
 ```bash
 PRD_EXCERPT=$(head -200 docs/prd/high-level-summary.md)
-MSG_PAYLOAD=$(jq -n --arg excerpt "$PRD_EXCERPT" \
-  '{message: ("Please review this requirements summary and give me a full expert panel assessment. What are we missing? What are the risks? Are we ready to build?\n\n---\n\n" + $excerpt)}')
-THREAD=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/chat/threads" -d "$MSG_PAYLOAD")
+THREAD=$(eve-api -X POST "$EVE_API_URL/projects/$EVE_PROJECT_ID/chat/simulate" \
+  -d "$(jq -n --arg text "Please review this requirements summary and give me a full expert panel assessment. What are we missing? What are the risks? Are we ready to build?
+
+---
+
+$PRD_EXCERPT" \
+    '{provider: "simulated", team_id: "expert-panel", text: $text, thread_key: "scenario09"}')")
 THREAD_ID=$(echo "$THREAD" | jq -r '.thread_id')
 PARENT_JOB=$(echo "$THREAD" | jq -r '.job_ids[0]')
 echo "Thread: $THREAD_ID  Parent job: $PARENT_JOB"
 ```
 
-**Expected:** Thread created with message. Eve chat routing activates `team:expert-panel`. Response contains `thread_id` and `job_ids` (8 jobs: 1 coordinator + 7 experts in backlog).
+**Expected:** Thread created. Response contains `thread_id` and `job_ids` (8 jobs: 1 coordinator + 7 experts in backlog).
 
-> **API note:** The chat API field is `message`, not `content`. The response returns `{thread_id, job_ids}`, not `{id}`.
+> **API note:** Chat simulate requires `provider`, `team_id`, `text`. Response returns `{thread_id, route_id, target, job_ids}`.
 
-### 2. (Combined with Step 1)
-
-Thread creation and message sending happen in a single call to `POST /projects/:id/chat/threads`.
-
-### 3. Monitor Coordinator and Expert Fan-Out
+### 2. Monitor Coordinator and Expert Fan-Out
 
 The job IDs are returned by step 1. The parent job is the coordinator; children `.1` through `.7` are the 7 experts.
 
@@ -72,28 +72,26 @@ done
 **Acceptable (solo path):**
 - Coordinator returns `success` → all 7 experts auto-cancelled
 - Coordinator response contains all expert perspectives inline
-- This happens when the coordinator decides it can handle the request alone
+- This happens when the coordinator decides it can handle the request alone (e.g., no file attachments, just inline text)
 
-### 6. Verify Review Created
-
-```bash
-REVIEWS=$(api "$EDEN_URL/api/projects/$PROJECT_ID/reviews")
-REVIEW=$(echo "$REVIEWS" | jq '.[0]')
-echo "$REVIEW" | jq '{id, status, expert_count: (.expert_opinions | length)}'
-```
-
-**Expected:**
-- Review record created with synthesis
-- 7 expert opinions attached
-
-### 7. Read Expert Opinions
+### 3. Read Chat Thread Response
 
 ```bash
-REVIEW_ID=$(echo "$REVIEW" | jq -r '.id')
-api "$EDEN_URL/api/projects/$PROJECT_ID/reviews/$REVIEW_ID" | jq '.expert_opinions[] | {slug, summary: .summary[0:100]}'
+# Thread messages are on the Eve API, not Eden
+eve-api "$EVE_API_URL/threads/$THREAD_ID/messages" | jq '.messages[-1].content[0:500]'
 ```
 
-**Expected:** 7 distinct expert opinions, each from a different perspective:
+**Expected:** Final message in thread contains the synthesized expert review.
+
+### 4. Verify Expert Coverage
+
+Check that the coordinator's output (either via panel synthesis or solo) covers all 7 expert perspectives:
+
+```bash
+eve job result $PARENT_JOB 2>&1 | head -100
+```
+
+**Expected:** Output addresses these domain-specific areas:
 - Tech Lead: architecture, feasibility
 - UX Advocate: accessibility, user journeys
 - Business Analyst: process flows, success criteria
@@ -102,28 +100,6 @@ api "$EDEN_URL/api/projects/$PROJECT_ID/reviews/$REVIEW_ID" | jq '.expert_opinio
 - QA Strategist: testing gaps, edge cases
 - Devil's Advocate: challenged assumptions
 
-### 8. Read Synthesis
-
-```bash
-api "$EDEN_URL/api/projects/$PROJECT_ID/reviews/$REVIEW_ID" | jq '.synthesis'
-```
-
-**Expected:** Executive summary covering:
-- Consensus across experts
-- Points of dissent
-- Critical risks
-- Key open questions
-- Recommended actions
-
-### 9. Poll Chat Thread for Response
-
-```bash
-MESSAGES=$(api "$EDEN_URL/api/chat/threads/$THREAD_ID/messages")
-echo "$MESSAGES" | jq '.[-1].content[0:500]'
-```
-
-**Expected:** Final message in thread contains the synthesized expert review.
-
 ## Debugging
 
 ```bash
@@ -131,21 +107,20 @@ echo "$MESSAGES" | jq '.[-1].content[0:500]'
 eve job list --project eden --json | jq '.[] | {id, description, phase, close_reason}'
 
 # Inspect coordinator decision
-eve job logs $COORD_JOB 2>&1 | grep -i "prepared\|success"
+eve job logs $PARENT_JOB 2>&1 | grep -i "prepared\|success"
 
 # Check expert jobs
-eve job list --project eden --json | jq '.[] | select(.phase != "done") | {id, description, phase}'
+for s in .1 .2 .3 .4 .5 .6 .7; do
+  eve job show "${PARENT_JOB}${s}" 2>&1 | grep -E "Phase:|Title:"
+done
 ```
 
 ## Success Criteria
 
-- [ ] Chat thread created via API
-- [ ] Message routed to expert-panel team
-- [ ] Coordinator triages and returns `prepared`
-- [ ] 7 expert jobs fan out in parallel
-- [ ] All expert jobs complete within timeout
-- [ ] Review record created with 7 opinions
-- [ ] Each opinion covers its domain-specific perspective
-- [ ] Synthesis combines all perspectives coherently
-- [ ] Chat thread receives synthesized response
+- [ ] Chat message routed to expert-panel team
+- [ ] Coordinator triages and returns `prepared` (panel) or `success` (solo)
+- [ ] If panel: 7 expert jobs fan out, complete, and synthesis is generated
+- [ ] If solo: coordinator covers all 7 expert domains inline
+- [ ] Chat thread receives the review response
+- [ ] Review covers all 7 domain-specific perspectives
 - [ ] No secrets (API keys, tokens) appear in job logs
