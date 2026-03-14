@@ -38,10 +38,9 @@ node --input-type=module -e "
 
 ### Find the Document
 
-The document has been **materialized into your workspace** by the platform:
-1. **Read `.eve/resources/index.json`** — this lists all materialized resources with their local paths
-2. **Read the file** at the path in `local_path` (relative to `.eve/resources/`)
-3. If no resources file exists, search for the document by filename in the repo
+**This step does NOT have materialized resources.** Do NOT check `.eve/resources/index.json` — it does not exist for this step.
+
+The document is a file in the git repo. Search for it by filename using Glob (e.g., `**/*.md`), then read it directly.
 
 ## Process
 

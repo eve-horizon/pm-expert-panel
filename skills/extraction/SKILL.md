@@ -13,13 +13,16 @@ You receive raw extracted text from the Ingestion Agent and identify requirement
 
 ## CRITICAL: How to Find the Document
 
-The document content is available in your workspace. Find it by:
+**This step does NOT have materialized resources.** Do NOT check `.eve/resources/index.json` — it does not exist for this step.
 
-1. **Check `.eve/resources/index.json`** — if it exists, read the file at the `local_path` specified there
-2. **If no resources file**, check the workflow input in your task description for the `payload.file_name` field, then search for that file in the repo using Glob
-3. **The document is a local file** — do NOT call any API to fetch it
+The document is a file in the git repo. Find it by:
+
+1. **Check the workflow input** in your task description for the `payload.file_name` field
+2. **Search the repo** for that filename using Glob (e.g., `**/*.md`, `**/{filename}`)
+3. **Read the file** directly — it is already on disk
 
 **Do NOT:**
+- Check `.eve/resources/index.json` — this step has no materialized resources
 - Use curl (it's not available in the container)
 - Call the Eden API or any external API — this step only processes text
 - Try to download from S3 or presigned URLs
