@@ -48,6 +48,14 @@ The platform injects these environment variables via `with_apis`:
 - `EVE_APP_API_URL_API` — base URL of the Eden API (internal K8s URL)
 - `EVE_JOB_TOKEN` — Bearer token for authentication
 
+### Finding the Project ID
+
+The workflow input (in your task description) contains the event payload with `project_id`. **Always use this** to identify the correct Eden project:
+
+1. Parse the **Workflow input** JSON from your task description
+2. Extract `payload.project_id` — this is the Eden project UUID
+3. If payload is null or missing project_id, fall back to listing projects and picking the one with the most data
+
 ### Helper Pattern
 
 ```bash
@@ -56,9 +64,23 @@ node --input-type=module -e "
   const TOKEN = process.env.EVE_JOB_TOKEN;
   const headers = { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
 
-  // 1. Find the Eden project ID (UUID)
-  const projects = await (await fetch(API + '/projects', { headers })).json();
-  const PID = projects[0].id;
+  // 1. Find the Eden project ID from workflow input payload or by listing projects
+  let PID;
+  const payloadProjectId = process.argv[2]; // pass as CLI arg if extracted from workflow input
+  if (payloadProjectId) {
+    PID = payloadProjectId;
+  } else {
+    const projects = await (await fetch(API + '/projects', { headers })).json();
+    if (projects.length === 1) {
+      PID = projects[0].id;
+    } else {
+      for (const p of projects) {
+        const m = await (await fetch(API + '/projects/' + p.id + '/map', { headers })).json();
+        if (m.activities && m.activities.length > 0) { PID = p.id; break; }
+      }
+      if (!PID) PID = projects[0].id;
+    }
+  }
 
   // 2. Read the answered question (get ID from event payload or list questions)
   const questions = await (await fetch(API + '/projects/' + PID + '/questions?status=answered', { headers })).json();
