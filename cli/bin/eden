@@ -3364,7 +3364,11 @@ async function api(method, path, body) {
     console.error(`${method} ${path} \u2192 ${res.status}: ${msg}`);
     process.exit(1);
   }
-  return res.json();
+  const json2 = await res.json();
+  if (json2 && typeof json2 === "object" && "data" in json2 && Array.isArray(json2.data)) {
+    return json2.data;
+  }
+  return json2;
 }
 
 // src/output.ts

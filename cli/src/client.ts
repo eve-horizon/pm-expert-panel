@@ -27,5 +27,10 @@ export async function api<T = unknown>(method: string, path: string, body?: unkn
     console.error(`${method} ${path} → ${res.status}: ${msg}`);
     process.exit(1);
   }
-  return res.json() as Promise<T>;
+  const json = await res.json();
+  // NestJS endpoints return data directly; unwrap { data: [...] } if present
+  if (json && typeof json === 'object' && 'data' in json && Array.isArray((json as Record<string, unknown>).data)) {
+    return (json as Record<string, unknown>).data as T;
+  }
+  return json as T;
 }
