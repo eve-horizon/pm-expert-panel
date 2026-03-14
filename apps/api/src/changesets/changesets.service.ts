@@ -450,15 +450,54 @@ export class ChangesetsService {
             ctx.org_id,
             projectId,
             displayId,
-            afterState.title ?? 'Untitled',
-            afterState.user_story ?? null,
+            afterState.title ?? afterState.name ?? 'Untitled',
+            afterState.user_story ?? afterState.description ?? null,
             JSON.stringify(afterState.acceptance_criteria ?? []),
             afterState.priority ?? 'medium',
             afterState.status ?? 'draft',
             afterState.device ?? null,
           ],
         );
-        await this.auditAppliedItem(client, ctx, projectId, 'task', rows[0].id, 'create', item);
+        const taskId = rows[0].id;
+
+        // Link task to step via step_tasks junction if step reference provided
+        const stepRef = (afterState.step_ref ?? afterState.step_display_id) as string | null;
+        if (stepRef) {
+          try {
+            const stepId = await this.resolveEntityByDisplayRef(
+              client, 'steps', stepRef, projectId,
+            );
+            // Resolve persona: use persona from after_state, or first persona in project
+            let personaId: string | null = null;
+            const personaRef = afterState.persona_ref as string | null;
+            if (personaRef) {
+              try {
+                personaId = await this.resolveEntityByDisplayRef(
+                  client, 'personas', personaRef, projectId,
+                );
+              } catch { /* persona not found */ }
+            }
+            if (!personaId) {
+              const { rows: personas } = await client.query<{ id: string }>(
+                'SELECT id FROM personas WHERE project_id = $1 LIMIT 1',
+                [projectId],
+              );
+              personaId = personas[0]?.id ?? null;
+            }
+            if (personaId) {
+              await client.query(
+                `INSERT INTO step_tasks (org_id, step_id, task_id, persona_id, sort_order)
+                 VALUES ($1, $2, $3, $4, 0)
+                 ON CONFLICT DO NOTHING`,
+                [ctx.org_id, stepId, taskId, personaId],
+              );
+            }
+          } catch {
+            // Step not yet created or ref invalid — skip junction, task still created
+          }
+        }
+
+        await this.auditAppliedItem(client, ctx, projectId, 'task', taskId, 'create', item);
         break;
       }
 
@@ -598,6 +637,12 @@ export class ChangesetsService {
         if (!activityId && afterState.activity_display_id) {
           activityId = await this.resolveEntityByDisplayRef(
             client, 'activities', afterState.activity_display_id as string, projectId,
+          );
+        }
+        // Also accept activity_ref as alias for activity_display_id (agents use this field name)
+        if (!activityId && afterState.activity_ref) {
+          activityId = await this.resolveEntityByDisplayRef(
+            client, 'activities', afterState.activity_ref as string, projectId,
           );
         }
         // Also try display_reference as parent activity ref (e.g. "ACT-1" or "ACT-1/STP-1")
