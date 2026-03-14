@@ -728,6 +728,9 @@ export class ChangesetsService {
   /**
    * Resolve a display_reference (e.g. 'TSK-1.1.1') to an entity UUID
    * by looking up the display_id column in the target table.
+   *
+   * Personas are special: they use `code` instead of `display_id`.
+   * The display_reference format is PER-{CODE} (e.g. PER-DOE → code DOE).
    */
   private async resolveEntityByDisplayRef(
     client: PoolClient,
@@ -739,6 +742,21 @@ export class ChangesetsService {
       throw new BadRequestException(
         `display_reference is required for update/delete operations on ${table}`,
       );
+    }
+
+    // Personas don't have display_id — look up by code instead
+    if (table === 'personas') {
+      const code = displayReference.replace(/^PER-/i, '');
+      const { rows } = await client.query<{ id: string }>(
+        `SELECT id FROM personas WHERE code = $1 AND project_id = $2`,
+        [code, projectId],
+      );
+      if (!rows[0]) {
+        throw new NotFoundException(
+          `persona with code "${code}" not found in project`,
+        );
+      }
+      return rows[0].id;
     }
 
     const { rows } = await client.query<{ id: string }>(
