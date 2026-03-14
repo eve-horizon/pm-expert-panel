@@ -118,10 +118,12 @@ After expert panel completes synthesis, additionally:
 
 **`curl` is NOT available.** Use `node --input-type=module -e` with `fetch()` for all API calls.
 
+**IMPORTANT: The Eden API has NO `/api/` prefix.** Routes are directly at the root: `/projects`, `/health`, `/changesets/:id`, etc. Do NOT prepend `/api/` to any endpoint.
+
 ### API URL and Auth
 
 The platform injects these environment variables via `with_apis`:
-- `EVE_APP_API_URL_API` — base URL of the Eden API (internal K8s URL)
+- `EVE_APP_API_URL_API` — base URL of the Eden API (internal K8s URL, already includes scheme+host)
 - `EVE_JOB_TOKEN` — Bearer token for authentication
 
 If `EVE_APP_API_URL_API` is not set (e.g. direct chat without `with_apis`), fall back to reading credentials:
