@@ -19,7 +19,7 @@ for p in '{"code":"PM","name":"Product Manager","color":"#4A90D9"}' \
          '{"code":"BA","name":"Business Analyst","color":"#7B68EE"}' \
          '{"code":"EL","name":"Engineering Lead","color":"#2ECC71"}' \
          '{"code":"SH","name":"Stakeholder","color":"#E67E22"}'; do
-  api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/personas" -d "$p" | jq '{id, code}'
+  api -X POST "$EDEN_URL/projects/$PROJECT_ID/personas" -d "$p" | jq '{id, code}'
 done
 ```
 
@@ -28,15 +28,15 @@ done
 ### 2. Create Activities
 
 ```bash
-ACT1=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/activities" \
+ACT1=$(api -X POST "$EDEN_URL/projects/$PROJECT_ID/activities" \
   -d '{"name": "Document Ingestion", "display_id": "ACT-1", "sort_order": 1}')
 ACT1_ID=$(echo "$ACT1" | jq -r '.id')
 
-ACT2=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/activities" \
+ACT2=$(api -X POST "$EDEN_URL/projects/$PROJECT_ID/activities" \
   -d '{"name": "Expert Review", "display_id": "ACT-2", "sort_order": 2}')
 ACT2_ID=$(echo "$ACT2" | jq -r '.id')
 
-ACT3=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/activities" \
+ACT3=$(api -X POST "$EDEN_URL/projects/$PROJECT_ID/activities" \
   -d '{"name": "Map Editing", "display_id": "ACT-3", "sort_order": 3}')
 ACT3_ID=$(echo "$ACT3" | jq -r '.id')
 ```
@@ -47,25 +47,25 @@ ACT3_ID=$(echo "$ACT3" | jq -r '.id')
 
 ```bash
 # Activity 1 steps
-S1=$(api -X POST "$EDEN_URL/api/activities/$ACT1_ID/steps" \
+S1=$(api -X POST "$EDEN_URL/activities/$ACT1_ID/steps" \
   -d '{"name": "Upload Document", "display_id": "STP-1.1", "sort_order": 1}')
 S1_ID=$(echo "$S1" | jq -r '.id')
 
-S2=$(api -X POST "$EDEN_URL/api/activities/$ACT1_ID/steps" \
+S2=$(api -X POST "$EDEN_URL/activities/$ACT1_ID/steps" \
   -d '{"name": "Extract Content", "display_id": "STP-1.2", "sort_order": 2}')
 S2_ID=$(echo "$S2" | jq -r '.id')
 
 # Activity 2 steps
-S3=$(api -X POST "$EDEN_URL/api/activities/$ACT2_ID/steps" \
+S3=$(api -X POST "$EDEN_URL/activities/$ACT2_ID/steps" \
   -d '{"name": "Triage Request", "display_id": "STP-2.1", "sort_order": 1}')
 S3_ID=$(echo "$S3" | jq -r '.id')
 
-S4=$(api -X POST "$EDEN_URL/api/activities/$ACT2_ID/steps" \
+S4=$(api -X POST "$EDEN_URL/activities/$ACT2_ID/steps" \
   -d '{"name": "Panel Analysis", "display_id": "STP-2.2", "sort_order": 2}')
 S4_ID=$(echo "$S4" | jq -r '.id')
 
 # Activity 3 steps
-S5=$(api -X POST "$EDEN_URL/api/activities/$ACT3_ID/steps" \
+S5=$(api -X POST "$EDEN_URL/activities/$ACT3_ID/steps" \
   -d '{"name": "Chat Interaction", "display_id": "STP-3.1", "sort_order": 1}')
 S5_ID=$(echo "$S5" | jq -r '.id')
 ```
@@ -76,10 +76,10 @@ S5_ID=$(echo "$S5" | jq -r '.id')
 
 ```bash
 # Grab persona IDs
-PM_ID=$(api "$EDEN_URL/api/projects/$PROJECT_ID/personas" | jq -r '.[] | select(.code=="PM") | .id')
-BA_ID=$(api "$EDEN_URL/api/projects/$PROJECT_ID/personas" | jq -r '.[] | select(.code=="BA") | .id')
+PM_ID=$(api "$EDEN_URL/projects/$PROJECT_ID/personas" | jq -r '.[] | select(.code=="PM") | .id')
+BA_ID=$(api "$EDEN_URL/projects/$PROJECT_ID/personas" | jq -r '.[] | select(.code=="BA") | .id')
 
-T1=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/tasks" \
+T1=$(api -X POST "$EDEN_URL/projects/$PROJECT_ID/tasks" \
   -d '{
     "title": "Upload requirements document",
     "display_id": "TSK-1.1.1",
@@ -90,7 +90,7 @@ T1=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/tasks" \
   }')
 T1_ID=$(echo "$T1" | jq -r '.id')
 
-T2=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/tasks" \
+T2=$(api -X POST "$EDEN_URL/projects/$PROJECT_ID/tasks" \
   -d '{
     "title": "Review expert panel synthesis",
     "display_id": "TSK-2.2.1",
@@ -101,7 +101,7 @@ T2=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/tasks" \
   }')
 T2_ID=$(echo "$T2" | jq -r '.id')
 
-T3=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/tasks" \
+T3=$(api -X POST "$EDEN_URL/projects/$PROJECT_ID/tasks" \
   -d '{
     "title": "Ask a question about a requirement",
     "display_id": "TSK-3.1.1",
@@ -119,19 +119,19 @@ T3_ID=$(echo "$T3" | jq -r '.id')
 
 ```bash
 # Task 1 → Step 1.1, owned by PM
-api -X POST "$EDEN_URL/api/tasks/$T1_ID/place" \
+api -X POST "$EDEN_URL/tasks/$T1_ID/place" \
   -d "{\"step_id\": \"$S1_ID\", \"persona_id\": \"$PM_ID\", \"role\": \"owner\"}" | jq '{id, role}'
 
 # Task 2 → Step 2.2, owned by PM
-api -X POST "$EDEN_URL/api/tasks/$T2_ID/place" \
+api -X POST "$EDEN_URL/tasks/$T2_ID/place" \
   -d "{\"step_id\": \"$S4_ID\", \"persona_id\": \"$PM_ID\", \"role\": \"owner\"}" | jq '{id, role}'
 
 # Task 3 → Step 3.1, owned by BA
-api -X POST "$EDEN_URL/api/tasks/$T3_ID/place" \
+api -X POST "$EDEN_URL/tasks/$T3_ID/place" \
   -d "{\"step_id\": \"$S5_ID\", \"persona_id\": \"$BA_ID\", \"role\": \"owner\"}" | jq '{id, role}'
 
 # Task 3 also placed as handoff on Step 1.2 (BA reviews extracted content)
-api -X POST "$EDEN_URL/api/tasks/$T3_ID/place" \
+api -X POST "$EDEN_URL/tasks/$T3_ID/place" \
   -d "{\"step_id\": \"$S2_ID\", \"persona_id\": \"$BA_ID\", \"role\": \"handoff\"}" | jq '{id, role}'
 ```
 
@@ -142,7 +142,7 @@ api -X POST "$EDEN_URL/api/tasks/$T3_ID/place" \
 ### 6. Verify Full Map Structure
 
 ```bash
-MAP=$(api "$EDEN_URL/api/projects/$PROJECT_ID/map")
+MAP=$(api "$EDEN_URL/projects/$PROJECT_ID/map")
 echo "$MAP" | jq '{
   personas: (.personas | length),
   activities: (.activities | length),

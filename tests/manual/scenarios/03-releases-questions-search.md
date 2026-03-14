@@ -15,7 +15,7 @@ Exercises the remaining CRUD entities: releases, questions, and full-text search
 ### 1. Create a Release
 
 ```bash
-RELEASE=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/releases" \
+RELEASE=$(api -X POST "$EDEN_URL/projects/$PROJECT_ID/releases" \
   -d '{"name": "MVP Release", "target_date": "2026-04-15", "status": "planning"}')
 RELEASE_ID=$(echo "$RELEASE" | jq -r '.id')
 ```
@@ -25,10 +25,10 @@ RELEASE_ID=$(echo "$RELEASE" | jq -r '.id')
 ### 2. Assign Tasks to Release
 
 ```bash
-api -X POST "$EDEN_URL/api/releases/$RELEASE_ID/tasks" \
+api -X POST "$EDEN_URL/releases/$RELEASE_ID/tasks" \
   -d "{\"task_id\": \"$T1_ID\"}" | jq '.id'
 
-api -X POST "$EDEN_URL/api/releases/$RELEASE_ID/tasks" \
+api -X POST "$EDEN_URL/releases/$RELEASE_ID/tasks" \
   -d "{\"task_id\": \"$T2_ID\"}" | jq '.id'
 ```
 
@@ -37,7 +37,7 @@ api -X POST "$EDEN_URL/api/releases/$RELEASE_ID/tasks" \
 ### 3. Create Questions
 
 ```bash
-Q1=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/questions" \
+Q1=$(api -X POST "$EDEN_URL/projects/$PROJECT_ID/questions" \
   -d '{
     "question": "What file size limit should we enforce for document uploads?",
     "category": "technical",
@@ -46,7 +46,7 @@ Q1=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/questions" \
   }')
 Q1_ID=$(echo "$Q1" | jq -r '.id')
 
-Q2=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/questions" \
+Q2=$(api -X POST "$EDEN_URL/projects/$PROJECT_ID/questions" \
   -d '{
     "question": "Should the expert panel run for every document or only on explicit request?",
     "category": "product",
@@ -62,7 +62,7 @@ Q2_ID=$(echo "$Q2" | jq -r '.id')
 ### 4. Answer a Question
 
 ```bash
-api -X PATCH "$EDEN_URL/api/projects/$PROJECT_ID/questions/$Q1_ID" \
+api -X PATCH "$EDEN_URL/questions/$Q1_ID" \
   -d '{"answer": "50MB limit for documents, 500MB for audio/video files", "status": "answered"}' | jq '{status, answer}'
 ```
 
@@ -72,10 +72,10 @@ api -X PATCH "$EDEN_URL/api/projects/$PROJECT_ID/questions/$Q1_ID" \
 
 ```bash
 # Search tasks
-api "$EDEN_URL/api/projects/$PROJECT_ID/search?q=expert+panel" | jq '.[].title'
+api "$EDEN_URL/projects/$PROJECT_ID/search?q=expert+panel" | jq '.[].title'
 
 # Search questions
-api "$EDEN_URL/api/projects/$PROJECT_ID/search?q=file+size" | jq '.[].question'
+api "$EDEN_URL/projects/$PROJECT_ID/search?q=file+size" | jq '.[].question'
 ```
 
 **Expected:** Search returns matching tasks and questions by keyword.
@@ -84,10 +84,10 @@ api "$EDEN_URL/api/projects/$PROJECT_ID/search?q=file+size" | jq '.[].question'
 
 ```bash
 # Filter by persona
-api "$EDEN_URL/api/projects/$PROJECT_ID/map?persona=$PM_ID" | jq '[.activities[].steps[].tasks[]] | length'
+api "$EDEN_URL/projects/$PROJECT_ID/map?persona=$PM_ID" | jq '[.activities[].steps[].tasks[]] | length'
 
 # Filter by release
-api "$EDEN_URL/api/projects/$PROJECT_ID/map?release=$RELEASE_ID" | jq '[.activities[].steps[].tasks[]] | length'
+api "$EDEN_URL/projects/$PROJECT_ID/map?release=$RELEASE_ID" | jq '[.activities[].steps[].tasks[]] | length'
 ```
 
 **Expected:**

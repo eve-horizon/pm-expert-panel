@@ -15,7 +15,7 @@ Tests the changeset system end-to-end: create a proposed set of changes, review 
 ### 1. Create a Changeset with Multiple Operations
 
 ```bash
-CHANGESET=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/changesets" \
+CHANGESET=$(api -X POST "$EDEN_URL/projects/$PROJECT_ID/changesets" \
   -d "{
     \"title\": \"Add security review step\",
     \"reasoning\": \"The expert panel identified a gap: no explicit security review step exists in the map.\",
@@ -58,7 +58,7 @@ echo "Changeset: $CS_ID"
 ### 2. Get Changeset Detail
 
 ```bash
-api "$EDEN_URL/api/projects/$PROJECT_ID/changesets/$CS_ID" | jq '{
+api "$EDEN_URL/changesets/$CS_ID" | jq '{
   title,
   status,
   source,
@@ -72,7 +72,7 @@ api "$EDEN_URL/api/projects/$PROJECT_ID/changesets/$CS_ID" | jq '{
 ### 3. Accept the Changeset
 
 ```bash
-ACCEPTED=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/changesets/$CS_ID/accept")
+ACCEPTED=$(api -X POST "$EDEN_URL/changesets/$CS_ID/accept")
 echo "$ACCEPTED" | jq '{status}'
 ```
 
@@ -82,7 +82,7 @@ echo "$ACCEPTED" | jq '{status}'
 
 ```bash
 # Check Activity 2 now has 3 steps
-api "$EDEN_URL/api/projects/$PROJECT_ID/map" | jq '
+api "$EDEN_URL/projects/$PROJECT_ID/map" | jq '
   .activities[] | select(.display_id == "ACT-2") |
   {name, step_count: (.steps | length), steps: [.steps[].name]}
 '
@@ -95,7 +95,7 @@ api "$EDEN_URL/api/projects/$PROJECT_ID/map" | jq '
 ### 5. Create and Reject a Changeset
 
 ```bash
-REJECT_CS=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/changesets" \
+REJECT_CS=$(api -X POST "$EDEN_URL/projects/$PROJECT_ID/changesets" \
   -d '{
     "title": "Remove all personas (bad idea)",
     "reasoning": "Testing rejection flow",
@@ -111,7 +111,7 @@ REJECT_CS=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/changesets" \
   }')
 REJECT_ID=$(echo "$REJECT_CS" | jq -r '.id')
 
-api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/changesets/$REJECT_ID/reject" | jq '{status}'
+api -X POST "$EDEN_URL/changesets/$REJECT_ID/reject" | jq '{status}'
 ```
 
 **Expected:** Changeset status is `rejected`. PM persona still exists.
@@ -119,7 +119,7 @@ api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/changesets/$REJECT_ID/reject" | 
 ### 6. Verify Rejected Changeset Had No Effect
 
 ```bash
-api "$EDEN_URL/api/projects/$PROJECT_ID/personas" | jq '.[].code'
+api "$EDEN_URL/projects/$PROJECT_ID/personas" | jq '.[].code'
 ```
 
 **Expected:** All 4 persona codes still present (PM, BA, EL, SH).

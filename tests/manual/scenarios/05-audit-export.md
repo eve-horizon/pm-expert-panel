@@ -15,11 +15,11 @@ Verifies that all operations from Scenarios 01–04 left an audit trail, and tha
 ### 1. Fetch Audit Log
 
 ```bash
-AUDIT=$(api "$EDEN_URL/api/projects/$PROJECT_ID/audit")
+AUDIT=$(api "$EDEN_URL/projects/$PROJECT_ID/audit")
 echo "$AUDIT" | jq '{
-  total: length,
-  actions: [.[].action] | unique,
-  entity_types: [.[].entity_type] | unique
+  total: (.entries | length),
+  actions: [.entries[].action] | unique,
+  entity_types: [.entries[].entity_type] | unique
 }'
 ```
 
@@ -31,7 +31,7 @@ echo "$AUDIT" | jq '{
 ### 2. Filter Audit by Entity Type
 
 ```bash
-api "$EDEN_URL/api/projects/$PROJECT_ID/audit?entity_type=changeset" | jq '.[].action'
+api "$EDEN_URL/projects/$PROJECT_ID/audit?entity_type=changeset" | jq '.entries[].action'
 ```
 
 **Expected:** Shows `create`, `accept`, `reject` actions for changesets.
@@ -39,7 +39,7 @@ api "$EDEN_URL/api/projects/$PROJECT_ID/audit?entity_type=changeset" | jq '.[].a
 ### 3. Export to JSON
 
 ```bash
-JSON_EXPORT=$(api "$EDEN_URL/api/projects/$PROJECT_ID/export/json")
+JSON_EXPORT=$(api "$EDEN_URL/projects/$PROJECT_ID/export/json")
 echo "$JSON_EXPORT" | jq 'keys'
 ```
 
@@ -48,7 +48,7 @@ echo "$JSON_EXPORT" | jq 'keys'
 ### 4. Export to Markdown
 
 ```bash
-MD_EXPORT=$(api "$EDEN_URL/api/projects/$PROJECT_ID/export/markdown")
+MD_EXPORT=$(api "$EDEN_URL/projects/$PROJECT_ID/export/markdown")
 echo "$MD_EXPORT" | head -20
 ```
 

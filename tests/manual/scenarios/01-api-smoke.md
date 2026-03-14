@@ -23,7 +23,7 @@ api_code() { curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $T
 ### 1. Health Check
 
 ```bash
-CODE=$(api_code "$EDEN_URL/api/health")
+CODE=$(api_code "$EDEN_URL/health")
 echo "Health: $CODE"
 ```
 
@@ -32,7 +32,7 @@ echo "Health: $CODE"
 ### 2. Create Test Project
 
 ```bash
-PROJECT=$(api -X POST "$EDEN_URL/api/projects" \
+PROJECT=$(api -X POST "$EDEN_URL/projects" \
   -d "{\"name\": \"Manual Test — Eden Scenarios\", \"slug\": \"$PROJECT_SLUG\"}")
 export PROJECT_ID=$(echo "$PROJECT" | jq -r '.id')
 echo "Project: $PROJECT_ID"
@@ -45,13 +45,13 @@ echo "Project: $PROJECT_ID"
 
 > If project already exists (409), fetch it:
 > ```bash
-> PROJECT_ID=$(api "$EDEN_URL/api/projects" | jq -r --arg slug "$PROJECT_SLUG" '.[] | select(.slug==$slug) | .id')
+> PROJECT_ID=$(api "$EDEN_URL/projects" | jq -r --arg slug "$PROJECT_SLUG" '.[] | select(.slug==$slug) | .id')
 > ```
 
 ### 3. Verify Project Appears in List
 
 ```bash
-api "$EDEN_URL/api/projects" | jq '.[].slug'
+api "$EDEN_URL/projects" | jq '.[].slug'
 ```
 
 **Expected:** `"$PROJECT_SLUG"` appears in the list
@@ -59,7 +59,7 @@ api "$EDEN_URL/api/projects" | jq '.[].slug'
 ### 4. Verify Empty Map
 
 ```bash
-MAP=$(api "$EDEN_URL/api/projects/$PROJECT_ID/map")
+MAP=$(api "$EDEN_URL/projects/$PROJECT_ID/map")
 echo "$MAP" | jq '{activities: (.activities | length), personas: (.personas | length)}'
 ```
 
