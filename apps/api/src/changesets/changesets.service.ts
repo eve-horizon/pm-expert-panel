@@ -600,10 +600,11 @@ export class ChangesetsService {
             client, 'activities', afterState.activity_display_id as string, projectId,
           );
         }
-        // Also try display_reference as parent activity ref (e.g. "ACT-1")
+        // Also try display_reference as parent activity ref (e.g. "ACT-1" or "ACT-1/STP-1")
         if (!activityId && item.display_reference) {
           const ref = item.display_reference as string;
-          const actRef = ref.includes('.') ? ref.split('.')[0] : ref;
+          // Split on / or . to get the activity portion
+          const actRef = ref.split(/[/.]/)[0];
           if (actRef.startsWith('ACT-')) {
             activityId = await this.resolveEntityByDisplayRef(
               client, 'activities', actRef, projectId,
