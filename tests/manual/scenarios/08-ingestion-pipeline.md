@@ -16,7 +16,7 @@ Uploads Eden's own high-level summary as a source document and triggers the Eve 
 ### 1. Create Source Record
 
 ```bash
-SOURCE=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/sources" \
+SOURCE=$(api -X POST "$EDEN_URL/projects/$PROJECT_ID/sources" \
   -d '{
     "filename": "high-level-summary.md",
     "content_type": "text/markdown",
@@ -33,7 +33,7 @@ echo "Source: $SOURCE_ID"
 > Implementation depends on whether Eden uses presigned URLs or direct upload.
 > If presigned URL:
 > ```bash
-> PRESIGN=$(api "$EDEN_URL/api/projects/$PROJECT_ID/sources/$SOURCE_ID/upload-url")
+> PRESIGN=$(api "$EDEN_URL/projects/$PROJECT_ID/sources/$SOURCE_ID/upload-url")
 > UPLOAD_URL=$(echo "$PRESIGN" | jq -r '.url')
 > curl -X PUT "$UPLOAD_URL" -T docs/prd/high-level-summary.md
 > ```
@@ -45,7 +45,7 @@ echo "Source: $SOURCE_ID"
 ### 3. Confirm Source to Trigger Pipeline
 
 ```bash
-CONFIRM=$(api -X POST "$EDEN_URL/api/projects/$PROJECT_ID/sources/$SOURCE_ID/confirm")
+CONFIRM=$(api -X POST "$EDEN_URL/projects/$PROJECT_ID/sources/$SOURCE_ID/confirm")
 echo "$CONFIRM" | jq '{status}'
 ```
 
@@ -77,7 +77,7 @@ eve job follow $JOB_ID
 ```bash
 # Poll for changeset from ingestion pipeline
 for i in $(seq 1 12); do
-  CS_LIST=$(api "$EDEN_URL/api/projects/$PROJECT_ID/changesets?source=ingestion")
+  CS_LIST=$(api "$EDEN_URL/projects/$PROJECT_ID/changesets?source=ingestion")
   [ "$(echo "$CS_LIST" | jq 'length')" -gt 0 ] && break
   sleep 5
 done
@@ -90,7 +90,7 @@ echo "$CS_LIST" | jq '.[0] | {title, source, item_count: (.items | length)}'
 ### 6. Verify Source Status Updated
 
 ```bash
-api "$EDEN_URL/api/projects/$PROJECT_ID/sources/$SOURCE_ID" | jq '{status, filename}'
+api "$EDEN_URL/projects/$PROJECT_ID/sources/$SOURCE_ID" | jq '{status, filename}'
 ```
 
 **Expected:** Status is `done` (updated by Eve callback when pipeline completes). If still `processing`, the pipeline may still be running — wait and retry.
