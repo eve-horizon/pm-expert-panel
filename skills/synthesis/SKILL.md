@@ -9,20 +9,17 @@ You compare extracted requirements against the current story map and create a ch
 
 ## CRITICAL: API Access
 
-**The Eden API has NO `/api/` prefix.** Routes are at the root: `/projects`, `/health`, `/changesets/:id`, etc.
-
-**`payload.project_id` in the workflow input is the EVE project ID (e.g., `proj_xxx`), NOT the Eden project UUID.** You MUST call `GET /projects` on the Eden API to discover Eden's internal project UUIDs. Never use `EVE_PROJECT_ID` or `payload.project_id` directly in Eden API URLs.
+**`payload.project_id` in the workflow input is the EVE project ID (e.g., `proj_xxx`), NOT the Eden project UUID.** You MUST call `eden projects list` to discover Eden's internal project UUIDs. Never use `EVE_PROJECT_ID` or `payload.project_id` directly as Eden project IDs.
 
 ### Connect to API and Find Project
 
-Use `curl` with the platform-injected env vars. **CRITICAL: When there are multiple projects, find the right one by looking at `GET /projects` and matching the source file:**
+Use the `eden` CLI (pre-installed in the agent environment). **CRITICAL: When there are multiple projects, find the right one by looking at `eden projects list` and matching the source file:**
 
 ```bash
 # List projects to get Eden's internal UUID
 # When multiple projects exist, look for the source by listing sources for each project
 # Pick the project whose sources include the file being ingested
-PROJECTS=$(curl -s "$EVE_APP_API_URL_API/projects" \
-  -H "Authorization: Bearer $EVE_JOB_TOKEN")
+PROJECTS=$(eden projects list --json)
 
 # If only one project, use it. Otherwise check sources for the ingested filename.
 PID=$(echo "$PROJECTS" | node -e "
@@ -33,8 +30,7 @@ PID=$(echo "$PROJECTS" | node -e "
 ")
 
 # Read current map state
-curl -s "$EVE_APP_API_URL_API/projects/$PID/map" \
-  -H "Authorization: Bearer $EVE_JOB_TOKEN"
+eden map --project $PID --json
 ```
 
 **If there is only ONE project, use it.** Don't pick a project based on which one has the most map data — use the one associated with this ingestion source.
@@ -57,7 +53,7 @@ The document is a file in the git repo. Search for it by filename using Glob (e.
 
 ### Create Changeset
 
-For the changeset POST, write the JSON payload to a temp file to avoid quote escaping issues:
+Write the JSON payload to a temp file, then submit it via the eden CLI:
 
 ```bash
 cat > /tmp/changeset.json << 'JSON'
@@ -78,20 +74,17 @@ cat > /tmp/changeset.json << 'JSON'
 }
 JSON
 
-curl -s -X POST "$EVE_APP_API_URL_API/projects/$PID/changesets" \
-  -H "Authorization: Bearer $EVE_JOB_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d @/tmp/changeset.json | jq .
+eden changeset create --project $PID --file /tmp/changeset.json --json
 ```
 
-### Key Endpoints
+### Key CLI Commands
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/projects` | List projects (get Eden project UUID) |
-| GET | `/projects/:id/map` | Full map (personas, activities, steps, tasks) |
-| GET | `/projects/:id/questions` | List existing questions |
-| POST | `/projects/:id/changesets` | Create changeset |
+| Command | Purpose |
+|---------|---------|
+| `eden projects list --json` | List projects (get Eden project UUID) |
+| `eden map --project $PID --json` | Full map (personas, activities, steps, tasks) |
+| `eden questions list --project $PID --json` | List existing questions |
+| `eden changeset create --project $PID --file <path> --json` | Create changeset |
 
 ### Changeset Item Types
 

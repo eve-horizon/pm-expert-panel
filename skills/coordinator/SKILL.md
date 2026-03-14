@@ -111,31 +111,26 @@ When you return `success`, the 7 backlog expert jobs are automatically cleaned u
 
 After expert panel completes synthesis, additionally:
 1. Extract actionable requirements from the synthesis
-2. Create changeset via `POST /projects/:projectId/changesets` with source `"expert-panel"` and actor `"pm-coordinator"`
+2. Create changeset via `eden changeset create --project $PID --file /tmp/changeset.json` with source `"expert-panel"` and actor `"pm-coordinator"`
 3. Return executive summary + "View changeset #N" link
 
 ## Eden API Access
 
-Use `curl` or `node` with `fetch()` for API calls.
+Use the `eden` CLI (available on PATH) for all Eden API interactions.
 
-**IMPORTANT: The Eden API has NO `/api/` prefix.** Routes are directly at the root: `/projects`, `/health`, `/changesets/:id`, etc. Do NOT prepend `/api/` to any endpoint.
+### Eden CLI
 
-### API URL and Auth
+The `eden` CLI is pre-installed and authenticated in the agent environment. It handles auth and API routing automatically — no tokens or URLs needed.
 
-The platform injects these environment variables via `with_apis`:
+**Fallback:** If `eden` is not available, the raw API is accessible via environment variables injected by `with_apis`:
 - `EVE_APP_API_URL_API` — base URL of the Eden API (internal K8s URL, already includes scheme+host)
 - `EVE_JOB_TOKEN` — Bearer token for authentication
 
-If `EVE_APP_API_URL_API` is not set (e.g. direct chat without `with_apis`), fall back to reading credentials:
-```javascript
-import { readFileSync } from 'fs';
-const creds = JSON.parse(readFileSync(process.env.HOME + '/.eve/credentials.json', 'utf8'));
-const TOKEN = Object.values(creds.tokens)[0].access_token;
-```
+**IMPORTANT: The Eden API has NO `/api/` prefix.** Routes are directly at the root: `/projects`, `/health`, `/changesets/:id`, etc. Do NOT prepend `/api/` to any endpoint.
 
 ### CRITICAL: Eve Project ID vs Eden Project ID
 
-**`EVE_PROJECT_ID` is the Eve platform project ID (e.g., `proj_01kkh30080e00rw62jqhkchwbk`). This is NOT the Eden project ID.** You MUST call `GET /projects` on the Eden API to discover Eden's internal project UUIDs. Never use `EVE_PROJECT_ID` in Eden API URLs.
+**`EVE_PROJECT_ID` is the Eve platform project ID (e.g., `proj_01kkh30080e00rw62jqhkchwbk`). This is NOT the Eden project ID.** You MUST run `eden projects list --json` to discover Eden's internal project UUIDs. Never use `EVE_PROJECT_ID` in Eden API calls.
 
 If the workflow event payload contains a `project_id` field (via `payload.project_id` in the workflow input), use that directly — it's the Eden project UUID. Otherwise, list projects and pick the one with map data.
 
@@ -145,18 +140,16 @@ Chat messages may include the Eden project UUID in a prefix: `[eden-project:UUID
 
 **IMPORTANT:** The Eden project ID is a UUID (e.g. `d56fdeba-3bc3-4853-86c6-ffbc48488e00`), NOT an Eve project ID (e.g. `proj_01kkh30080e00rw62jqhkchwbk`). Never use Eve project IDs with the Eden API.
 
-If no project prefix is present, list all projects via `GET /projects` and use the first/only one.
+If no project prefix is present, list all projects via `eden projects list --json` and use the first/only one.
 
-### Simple API Calls
+### Common Commands
 
 ```bash
 # List projects
-curl -s "$EVE_APP_API_URL_API/projects" \
-  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+eden projects list --json
 
 # Read map (when you already have PID)
-curl -s "$EVE_APP_API_URL_API/projects/$PID/map" \
-  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+eden map --project $PID --json
 
 # Create a changeset (write JSON to temp file first for large payloads)
 cat > /tmp/changeset.json << 'PAYLOAD'
@@ -169,47 +162,33 @@ cat > /tmp/changeset.json << 'PAYLOAD'
 }
 PAYLOAD
 
-curl -s -X POST "$EVE_APP_API_URL_API/projects/$PID/changesets" \
-  -H "Authorization: Bearer $EVE_JOB_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d @/tmp/changeset.json | jq .
+eden changeset create --project $PID --file /tmp/changeset.json
 ```
 
 ### Multi-Step Pattern (discover project + read map)
 
-When you need to discover the Eden project ID and then read data, use a node script:
+When you need to discover the Eden project ID and then read data:
 
 ```bash
-node --input-type=module -e "
-  const API = process.env.EVE_APP_API_URL_API;
-  const TOKEN = process.env.EVE_JOB_TOKEN;
-  const headers = { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
+# Get the first project's ID
+PID=$(eden projects list --json | jq -r '.[0].id')
 
-  // Find Eden project ID from workflow input payload or by listing projects
-  let PID;
-  const payloadProjectId = process.argv[2]; // pass as CLI arg if extracted from workflow input
-  if (payloadProjectId) {
-    PID = payloadProjectId;
-  } else {
-    const projects = await (await fetch(API + '/projects', { headers })).json();
-    if (projects.length === 1) {
-      PID = projects[0].id;
-    } else {
-      for (const p of projects) {
-        const m = await (await fetch(API + '/projects/' + p.id + '/map', { headers })).json();
-        if (m.activities && m.activities.length > 0) { PID = p.id; break; }
-      }
-      if (!PID) PID = projects[0].id;
-    }
-  }
-
-  // Read map
-  const map = await (await fetch(API + '/projects/' + PID + '/map', { headers })).json();
-  console.log(JSON.stringify(map, null, 2));
-"
+# Read the map
+eden map --project $PID --json
 ```
 
-### Key endpoints
+If the workflow event payload contains a `project_id`, use that directly instead of listing projects.
+
+### Eden CLI Commands
+
+| Command | Purpose |
+|---------|---------|
+| `eden projects list --json` | List projects (get Eden project UUID) |
+| `eden map --project $PID --json` | Full map state (personas, activities, steps, tasks) |
+| `eden question list --project $PID --status open --json` | List open questions |
+| `eden changeset create --project $PID --file /tmp/changeset.json` | Create changeset |
+
+### Key API endpoints (fallback)
 
 | Method | Path | Purpose |
 |--------|------|---------|
@@ -228,12 +207,12 @@ node --input-type=module -e "
 
 **All map mutations MUST go through changesets.** Never create entities directly — always create a changeset so changes go through the review gate.
 
-1. `GET /projects/:id/map` — read current state
+1. `eden map --project $PID --json` — read current state
 2. Match the user's intent to changeset operations (task/create, persona/create, activity/create, step/create, task/update, task/delete)
-3. `POST /projects/:id/changesets` — create a changeset with `source: "map-chat"`, `actor: "pm-coordinator"`, and items describing each operation
+3. `eden changeset create --project $PID --file /tmp/changeset.json` — create a changeset with `source: "map-chat"`, `actor: "pm-coordinator"`, and items describing each operation
 4. Report back: "Created changeset with N items for review"
 
-Do NOT call entity creation endpoints (POST /personas, POST /tasks, etc.) directly. All mutations flow through changesets.
+Do NOT call entity creation endpoints directly. All mutations flow through changesets.
 
 ## Rules
 
@@ -242,4 +221,4 @@ Do NOT call entity creation endpoints (POST /personas, POST /tasks, etc.) direct
 - For the panel path, your prepare phase does the heavy lifting (transcription, extraction). Experts get pre-digested content via the coordination thread.
 - For the solo path, be concise and helpful. You're a senior PM, not a router.
 - Always check for attachments before deciding the path — files change everything.
-- For map edits: ALWAYS create a changeset via `POST /projects/:id/changesets`. Never create entities directly — all map mutations must go through the changeset review gate.
+- For map edits: ALWAYS create a changeset via `eden changeset create --project $PID --file /tmp/changeset.json`. Never create entities directly — all map mutations must go through the changeset review gate.

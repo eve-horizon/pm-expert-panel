@@ -9,11 +9,11 @@ You evaluate answered questions and determine whether the answer implies a chang
 
 ## Workflow
 
-1. Read the answered question via `GET /questions/:id` (includes references)
+1. Read the answered question via `eden question get $QID --json` (includes references)
 2. Read affected task(s)/activities via references
-3. Read surrounding map context via `GET /projects/:projectId/map`
+3. Read surrounding map context via `eden map --project $PID --json`
 4. Determine if the answer implies a map change
-5. If yes → create changeset via `POST /projects/:projectId/changesets`
+5. If yes → create changeset via `eden changeset create --project $PID --file FILE --json`
 6. If no → no action (question already marked answered by the evolve endpoint)
 
 ## Decision Criteria
@@ -40,13 +40,9 @@ Always create changesets with:
 
 ## Eden API Access
 
-Use `curl` or `node` with `fetch()` for API calls.
+The `eden` CLI is available on `PATH` and is the primary interface for all Eden API interactions. It handles authentication and API routing automatically.
 
-**IMPORTANT: The Eden API has NO `/api/` prefix.** Routes are directly at the root: `/projects`, `/health`, `/changesets/:id`, etc. Do NOT prepend `/api/` to any endpoint.
-
-### API URL and Auth
-
-The platform injects these environment variables via `with_apis`:
+**Fallback**: If `eden` is unavailable, the platform injects these environment variables via `with_apis`:
 - `EVE_APP_API_URL_API` — base URL of the Eden API (internal K8s URL, already includes scheme+host)
 - `EVE_JOB_TOKEN` — Bearer token for authentication
 
@@ -62,16 +58,13 @@ The workflow input (in your task description) contains the event payload with `p
 
 ```bash
 # List projects
-curl -s "$EVE_APP_API_URL_API/projects" \
-  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+eden projects list --json
 
 # Read map (when you already have PID)
-curl -s "$EVE_APP_API_URL_API/projects/$PID/map" \
-  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+eden map --project $PID --json
 
 # Read answered questions
-curl -s "$EVE_APP_API_URL_API/projects/$PID/questions?status=answered" \
-  -H "Authorization: Bearer $EVE_JOB_TOKEN" | jq .
+eden question list --project $PID --status answered --json
 
 # Create a changeset (write JSON to temp file first for large payloads)
 cat > /tmp/changeset.json << 'PAYLOAD'
@@ -84,60 +77,36 @@ cat > /tmp/changeset.json << 'PAYLOAD'
 }
 PAYLOAD
 
-curl -s -X POST "$EVE_APP_API_URL_API/projects/$PID/changesets" \
-  -H "Authorization: Bearer $EVE_JOB_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d @/tmp/changeset.json | jq .
+eden changeset create --project $PID --file /tmp/changeset.json --json
 ```
 
 ### Multi-Step Pattern (discover project + read question + map)
 
-When you need to discover the Eden project ID and then read multiple resources, use a node script:
+When you need to discover the Eden project ID and then read multiple resources:
 
 ```bash
-node --input-type=module -e "
-  const API = process.env.EVE_APP_API_URL_API;
-  const TOKEN = process.env.EVE_JOB_TOKEN;
-  const headers = { 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' };
+# 1. Find the Eden project ID from workflow input payload or by listing projects
+PID="<from workflow input payload.project_id>"
 
-  // 1. Find the Eden project ID from workflow input payload or by listing projects
-  let PID;
-  const payloadProjectId = process.argv[2]; // pass as CLI arg if extracted from workflow input
-  if (payloadProjectId) {
-    PID = payloadProjectId;
-  } else {
-    const projects = await (await fetch(API + '/projects', { headers })).json();
-    if (projects.length === 1) {
-      PID = projects[0].id;
-    } else {
-      for (const p of projects) {
-        const m = await (await fetch(API + '/projects/' + p.id + '/map', { headers })).json();
-        if (m.activities && m.activities.length > 0) { PID = p.id; break; }
-      }
-      if (!PID) PID = projects[0].id;
-    }
-  }
+# If project_id not in payload, discover it:
+PID=$(eden projects list --json | jq -r '.[0].id')
 
-  // 2. Read the answered question (get ID from event payload or list questions)
-  const questions = await (await fetch(API + '/projects/' + PID + '/questions?status=answered', { headers })).json();
-  const latest = questions[questions.length - 1];
+# 2. Read answered questions
+eden question list --project $PID --status answered --json
 
-  // 3. Read map for context
-  const map = await (await fetch(API + '/projects/' + PID + '/map', { headers })).json();
-
-  console.log(JSON.stringify({ question: latest, map_summary: { personas: map.personas.length, activities: map.activities.length } }));
-"
+# 3. Read map for context
+eden map --project $PID --json
 ```
 
-### Key Endpoints
+### Key Commands
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/projects` | List projects (get Eden project UUID) |
-| GET | `/projects/:id/map` | Full map state |
-| GET | `/projects/:id/questions` | List questions (filter by status) |
-| GET | `/questions/:id` | Get specific question |
-| POST | `/projects/:id/changesets` | Create changeset |
+| Command | Purpose |
+|---------|---------|
+| `eden projects list --json` | List projects (get Eden project UUID) |
+| `eden map --project $PID --json` | Full map state |
+| `eden question list --project $PID --json` | List questions (filter by status) |
+| `eden question get $QID --json` | Get specific question |
+| `eden changeset create --project $PID --file FILE --json` | Create changeset |
 
 ## Rules
 
