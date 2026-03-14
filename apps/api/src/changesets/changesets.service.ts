@@ -430,7 +430,7 @@ export class ChangesetsService {
 
       case 'task/create': {
         // Auto-generate display_id if not provided
-        let displayId = afterState.display_id;
+        let displayId = afterState.display_id ?? item.display_reference;
         if (!displayId) {
           const { rows: countRows } = await client.query<{ cnt: string }>(
             'SELECT count(*)::text AS cnt FROM tasks WHERE project_id = $1',
@@ -595,7 +595,7 @@ export class ChangesetsService {
       // -- Activities ------------------------------------------------------
 
       case 'activity/create': {
-        let actDisplayId = afterState.display_id;
+        let actDisplayId = afterState.display_id ?? item.display_reference;
         if (!actDisplayId) {
           const { rows: actCount } = await client.query<{ cnt: string }>(
             'SELECT count(*)::text AS cnt FROM activities WHERE project_id = $1',
@@ -623,7 +623,7 @@ export class ChangesetsService {
       // -- Steps -----------------------------------------------------------
 
       case 'step/create': {
-        let stepDisplayId = afterState.display_id;
+        let stepDisplayId = afterState.display_id ?? item.display_reference;
         if (!stepDisplayId) {
           const { rows: stepCount } = await client.query<{ cnt: string }>(
             'SELECT count(*)::text AS cnt FROM steps WHERE project_id = $1',
