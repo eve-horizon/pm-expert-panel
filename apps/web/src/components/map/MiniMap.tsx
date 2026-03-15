@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { Activity, Persona } from './types';
 
 // ---------------------------------------------------------------------------
 // MiniMap — bird's-eye navigation overlay for the story map grid
 //
 // Fixed bottom-right panel showing a miniature representation of the entire
-// grid. Uses the same horizontal layout as the main grid: activities flow
-// left-to-right, each with its steps as columns. Click to scroll the main
-// container; a viewport indicator tracks the current scroll position.
+// grid. Click or drag to scroll the main container. Viewport indicator tracks
+// the current scroll position via direct DOM mutation (no React re-renders)
+// for smooth drag performance matching the prototype.
 // ---------------------------------------------------------------------------
 
 interface MiniMapProps {
@@ -34,28 +34,31 @@ export function MiniMap({
   hideProposed = false,
 }: MiniMapProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
-  const [viewport, setViewport] = useState({ x: 0, y: 0, w: 0, h: 0 });
+  const vpRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
 
   // Total columns = sum of all steps
   const totalCols = activities.reduce((sum, a) => sum + Math.max(a.steps.length, 1), 0);
 
-  // Track container scroll to update viewport indicator
+  // -----------------------------------------------------------------------
+  // Viewport indicator — direct DOM mutation, no setState, no re-renders.
+  // Matches the prototype's updateMinimapViewport() approach.
+  // -----------------------------------------------------------------------
   const updateViewport = useCallback(() => {
     const el = containerRef.current;
-    if (!el || !bodyRef.current) return;
+    const body = bodyRef.current;
+    const vp = vpRef.current;
+    if (!el || !body || !vp) return;
 
-    const bodyW = bodyRef.current.clientWidth;
-    const bodyH = bodyRef.current.clientHeight;
+    const bw = body.offsetWidth;
+    const bh = body.offsetHeight;
+    const sw = el.scrollWidth;
+    const sh = el.scrollHeight;
 
-    const scaleX = bodyW / el.scrollWidth;
-    const scaleY = bodyH / el.scrollHeight;
-
-    setViewport({
-      x: el.scrollLeft * scaleX,
-      y: el.scrollTop * scaleY,
-      w: el.clientWidth * scaleX,
-      h: el.clientHeight * scaleY,
-    });
+    vp.style.left = (el.scrollLeft / sw * bw) + 'px';
+    vp.style.top = (el.scrollTop / sh * bh) + 'px';
+    vp.style.width = Math.min(el.clientWidth / sw * bw, bw) + 'px';
+    vp.style.height = Math.min(el.clientHeight / sh * bh, bh) + 'px';
   }, [containerRef]);
 
   useEffect(() => {
@@ -72,10 +75,10 @@ export function MiniMap({
     };
   }, [containerRef, updateViewport]);
 
-  // Drag-to-navigate: mousedown starts, mousemove continues, mouseup stops.
-  // Matches prototype behavior — immediate scroll, no smooth animation.
-  const draggingRef = useRef(false);
-
+  // -----------------------------------------------------------------------
+  // Click/drag navigation — mousedown starts, mousemove continues, mouseup
+  // stops. Immediate scroll assignment (no smooth), matching the prototype.
+  // -----------------------------------------------------------------------
   const navTo = useCallback(
     (clientX: number, clientY: number) => {
       const el = containerRef.current;
@@ -120,7 +123,7 @@ export function MiniMap({
   return (
     <div
       data-testid="minimap"
-      className="minimap fixed bottom-14 right-4 z-50 rounded-lg shadow-lg overflow-hidden print:hidden"
+      className="minimap fixed bottom-14 right-4 z-50 rounded-lg shadow-lg overflow-hidden select-none print:hidden"
       style={{ width: MINIMAP_WIDTH }}
     >
       {/* Header */}
@@ -149,15 +152,15 @@ export function MiniMap({
           }}
           onMouseDown={handleMouseDown}
         >
-          {/* Viewport indicator */}
+          {/* Viewport indicator — positioned via direct DOM mutation */}
           <div
-            className="absolute border-2 border-orange-400 rounded-sm pointer-events-none"
+            ref={vpRef}
+            className="absolute pointer-events-none"
             style={{
-              left: viewport.x,
-              top: viewport.y,
-              width: Math.max(viewport.w, 8),
-              height: Math.max(viewport.h, 4),
-              backgroundColor: 'rgba(251,146,60,0.15)',
+              border: '2px solid #e65100',
+              background: 'rgba(230, 81, 0, .08)',
+              borderRadius: '2px',
+              boxShadow: '0 0 8px rgba(230, 81, 0, .2)',
             }}
           />
 
