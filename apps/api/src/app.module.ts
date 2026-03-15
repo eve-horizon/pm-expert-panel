@@ -10,6 +10,7 @@ import { PersonasModule } from './personas/personas.module';
 import { ProjectsModule } from './projects/projects.module';
 import { QuestionsModule } from './questions/questions.module';
 import { ReleasesModule } from './releases/releases.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { SearchModule } from './search/search.module';
 import { SourcesModule } from './sources/sources.module';
 import { StepsModule } from './steps/steps.module';
@@ -27,6 +28,7 @@ import { TasksModule } from './tasks/tasks.module';
     TasksModule,
     MapModule,
     SourcesModule,
+    ReviewsModule,
     ChangesetsModule,
     ChatModule,
     SearchModule,
