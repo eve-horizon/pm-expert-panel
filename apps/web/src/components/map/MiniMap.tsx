@@ -72,33 +72,55 @@ export function MiniMap({
     };
   }, [containerRef, updateViewport]);
 
-  // Click in minimap body -> scroll the container proportionally
-  const handleBodyClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+  // Drag-to-navigate: mousedown starts, mousemove continues, mouseup stops.
+  // Matches prototype behavior — immediate scroll, no smooth animation.
+  const draggingRef = useRef(false);
+
+  const navTo = useCallback(
+    (clientX: number, clientY: number) => {
       const el = containerRef.current;
       const body = bodyRef.current;
       if (!el || !body) return;
 
       const rect = body.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
+      const fracX = (clientX - rect.left) / rect.width;
+      const fracY = (clientY - rect.top) / rect.height;
 
-      const ratioX = clickX / rect.width;
-      const ratioY = clickY / rect.height;
-
-      el.scrollTo({
-        left: ratioX * el.scrollWidth - el.clientWidth / 2,
-        top: ratioY * el.scrollHeight - el.clientHeight / 2,
-        behavior: 'smooth',
-      });
+      el.scrollLeft = fracX * el.scrollWidth - el.clientWidth / 2;
+      el.scrollTop = fracY * el.scrollHeight - el.clientHeight / 2;
     },
     [containerRef],
   );
 
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      draggingRef.current = true;
+      navTo(e.clientX, e.clientY);
+      e.preventDefault();
+    },
+    [navTo],
+  );
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (draggingRef.current) navTo(e.clientX, e.clientY);
+    };
+    const onMouseUp = () => {
+      draggingRef.current = false;
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [navTo]);
+
   return (
     <div
       data-testid="minimap"
-      className="minimap fixed bottom-4 right-4 z-50 rounded-lg shadow-lg overflow-hidden print:hidden"
+      className="minimap fixed bottom-14 right-4 z-50 rounded-lg shadow-lg overflow-hidden print:hidden"
       style={{ width: MINIMAP_WIDTH }}
     >
       {/* Header */}
@@ -125,7 +147,7 @@ export function MiniMap({
             padding: '8px',
             minHeight: 60,
           }}
-          onClick={handleBodyClick}
+          onMouseDown={handleMouseDown}
         >
           {/* Viewport indicator */}
           <div
