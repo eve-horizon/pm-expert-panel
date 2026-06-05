@@ -29,3 +29,7 @@ apps/*/package-lock.json
 .agents/skills
 .agents/skills
 .pi/
+
+# Beads / Dolt files (added by bd init)
+.beads-credential-key
+.beads/proxieddb/
