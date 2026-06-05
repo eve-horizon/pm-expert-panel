@@ -5184,6 +5184,14 @@ function registerChat(program3) {
     console.log(`Queued message for thread: ${data.thread_id}`);
     console.log(`Jobs: ${data.job_ids.join(", ")}`);
   });
+  chat.command("job").description("Show chat job status and result").argument("<jobId>", "Eve job ID returned by chat create/send").option("--json", "JSON output").action(async (jobId, opts) => {
+    const data = await api("GET", `/chat/jobs/${jobId}`);
+    if (opts.json) return json(data);
+    table([data], ["id", "phase", "success", "exit_code", "error"]);
+    if (data.result_text) {
+      console.log("\n" + data.result_text);
+    }
+  });
   chat.command("poll").description("Poll messages for a thread").argument("<threadId>", "Thread ID").option("--json", "JSON output").action(async (threadId, opts) => {
     const data = await api("GET", `/chat/threads/${threadId}/poll`);
     if (opts.json) return json(data);

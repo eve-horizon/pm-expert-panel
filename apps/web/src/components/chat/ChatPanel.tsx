@@ -20,7 +20,9 @@ interface EveMessage {
   id: string;
   thread_id: string;
   direction: 'inbound' | 'outbound';
+  kind?: string;
   actor_type: string;
+  job_id?: string | null;
   body: string;
   created_at: string;
 }
@@ -28,6 +30,15 @@ interface EveMessage {
 interface SimulateResponse {
   thread_id: string;
   job_ids: string[];
+}
+
+interface ChatJobStatus {
+  id: string;
+  phase: string;
+  result_text?: string;
+  error?: string | null;
+  success?: boolean;
+  exit_code?: number | null;
 }
 
 interface ChatRoutingMetadata {
@@ -62,12 +73,69 @@ function stripRoutePrefix(body: string): string {
 
 /** Convert Eve messages to our display format */
 function toMessages(msgs: EveMessage[]): Message[] {
-  return msgs.map((m) => ({
-    id: m.id,
-    role: m.direction === 'inbound' ? 'user' as const : 'assistant' as const,
-    content: m.direction === 'inbound' ? stripRoutePrefix(m.body) : m.body,
-    created_at: m.created_at,
-  }));
+  return msgs
+    .filter((m) => !isTransientHarnessWarning(m))
+    .map((m) => ({
+      id: m.id,
+      role: m.direction === 'inbound' ? 'user' as const : 'assistant' as const,
+      content: m.direction === 'inbound' ? stripRoutePrefix(m.body) : m.body,
+      created_at: m.created_at,
+    }));
+}
+
+function isTransientHarnessWarning(message: EveMessage): boolean {
+  return (
+    message.direction === 'outbound' &&
+    message.actor_type === 'system' &&
+    /\bclaude_auth_failed\b/i.test(message.body)
+  );
+}
+
+function isTerminalThreadMessage(message: EveMessage, jobIds: string[]): boolean {
+  if (message.direction !== 'outbound' || isTransientHarnessWarning(message)) {
+    return false;
+  }
+
+  if (jobIds.length > 0 && message.job_id && !jobIds.includes(message.job_id)) {
+    return false;
+  }
+
+  return message.kind === 'message' && message.actor_type !== 'system';
+}
+
+function isTerminalJob(job: ChatJobStatus): boolean {
+  return job.phase === 'done' || job.phase === 'cancelled';
+}
+
+function messageFromJob(job: ChatJobStatus): Message | null {
+  const resultText = job.result_text?.trim();
+  if (resultText) {
+    return {
+      id: `job-result-${job.id}`,
+      role: 'assistant',
+      content: resultText,
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  if (job.phase === 'cancelled' || job.success === false) {
+    return {
+      id: `job-error-${job.id}`,
+      role: 'assistant',
+      content: job.error?.trim() || 'The agent job failed before returning a response.',
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  return null;
+}
+
+function appendMessageIfMissing(messages: Message[], message: Message | null): Message[] {
+  if (!message) return messages;
+  if (messages.some((m) => m.id === message.id || m.content === message.content)) {
+    return messages;
+  }
+  return [...messages, message];
 }
 
 // ---------------------------------------------------------------------------
@@ -122,34 +190,71 @@ export function ChatPanel({
       .catch(() => setError('Failed to load messages'));
   }, [activeThread]);
 
-  // Poll for new messages after sending
-  const startPolling = useCallback((threadId: string, knownCount: number) => {
+  // Poll for the terminal agent response after sending. Eve may emit startup
+  // warnings or progress messages before the final result, so message count
+  // alone is not a reliable completion signal.
+  const startPolling = useCallback((
+    threadId: string,
+    knownCount: number,
+    jobIds: string[] = [],
+  ) => {
     if (pollRef.current) clearInterval(pollRef.current);
     setPolling(true);
     setPollingStartedAt(Date.now());
 
     let attempts = 0;
     const maxAttempts = 60; // 5 minutes max polling
+    const finishPolling = () => {
+      setPolling(false);
+      setPollingStartedAt(null);
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
 
     pollRef.current = setInterval(async () => {
       attempts++;
       try {
         const msgs = await api.get<EveMessage[]>(`/chat/threads/${threadId}/messages`);
         const converted = toMessages(msgs);
-        if (converted.length > knownCount) {
+        let nextMessages = converted;
+
+        const terminalThreadMessage = msgs.some((m) => (
+          isTerminalThreadMessage(m, jobIds)
+        ));
+
+        if (jobIds.length > 0) {
+          const jobs = await Promise.all(
+            jobIds.map((jobId) =>
+              api.get<ChatJobStatus>(`/chat/jobs/${jobId}`).catch(() => null),
+            ),
+          );
+          const terminalJob = jobs.find((job): job is ChatJobStatus => (
+            Boolean(job && isTerminalJob(job))
+          ));
+
+          if (terminalJob) {
+            nextMessages = appendMessageIfMissing(
+              converted,
+              messageFromJob(terminalJob),
+            );
+          }
+
+          setMessages(nextMessages);
+
+          if (terminalThreadMessage || terminalJob) {
+            finishPolling();
+          }
+        } else if (converted.length > knownCount) {
           setMessages(converted);
-          setPolling(false);
-          setPollingStartedAt(null);
-          if (pollRef.current) clearInterval(pollRef.current);
+          finishPolling();
+        } else if (converted.length >= knownCount) {
+          setMessages(converted);
         }
       } catch {
         // Ignore poll errors
       }
 
       if (attempts >= maxAttempts) {
-        setPolling(false);
-        setPollingStartedAt(null);
-        if (pollRef.current) clearInterval(pollRef.current);
+        finishPolling();
       }
     }, 5000);
   }, []);
@@ -190,16 +295,16 @@ export function ChatPanel({
         setActiveThread(result.thread_id);
         setForceNew(false);
         setMessages([userMsg]);
-        startPolling(result.thread_id, 1); // Poll for AI response (> 1 message)
+        startPolling(result.thread_id, 1, result.job_ids);
       } else {
         // Send to existing thread
         setMessages((prev) => [...prev, userMsg]);
-        await api.post(`/chat/threads/${activeThread}/messages`, {
+        const result = await api.post<SimulateResponse>(`/chat/threads/${activeThread}/messages`, {
           message,
           metadata,
           projectId,
         });
-        startPolling(activeThread, messages.length + 1); // Poll for response
+        startPolling(activeThread, messages.length + 1, result.job_ids);
       }
     } catch {
       setError('Failed to send message');

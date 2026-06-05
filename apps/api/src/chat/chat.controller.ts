@@ -99,4 +99,12 @@ export class ChatController {
   ) {
     return this.chat.listMessages(threadId, bearerToken(req));
   }
+
+  @Get('chat/jobs/:jobId')
+  getJobStatus(
+    @Req() req: Request,
+    @Param('jobId') jobId: string,
+  ) {
+    return this.chat.getJobStatus(jobId, bearerToken(req));
+  }
 }

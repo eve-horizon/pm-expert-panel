@@ -22,10 +22,14 @@ export interface ThreadMessage {
   id: string;
   thread_id: string;
   direction: 'inbound' | 'outbound';
+  kind?: string;
   actor_type: string;
   actor_id: string | null;
   body: string;
   job_id: string | null;
+  delivery_status?: string | null;
+  delivery_error?: string | null;
+  delivered_at?: string | null;
   created_at: string;
 }
 
@@ -43,6 +47,32 @@ export interface ChatRoutingMetadata {
   references?: string[];
   surface?: string;
 }
+
+export interface ChatJobStatus {
+  id: string;
+  phase: string;
+  result_text?: string;
+  result_json?: unknown;
+  error?: string | null;
+  success?: boolean;
+  exit_code?: number | null;
+}
+
+interface EveJob {
+  id: string;
+  phase: string;
+  close_reason?: string | null;
+  error?: string | null;
+}
+
+interface EveJobResult {
+  success?: boolean;
+  exitCode?: number | null;
+  resultText?: string | null;
+  resultJson?: unknown;
+}
+
+const CHAT_MESSAGE_LIMIT = 100;
 
 @Injectable()
 export class ChatGatewayService {
@@ -158,11 +188,13 @@ export class ChatGatewayService {
   async listMessages(threadId: string, token?: string): Promise<ThreadMessage[]> {
     const result = await this.proxy<{ messages: ThreadMessage[]; total: number }>(
       'GET',
-      `/threads/${threadId}/messages`,
+      `/threads/${threadId}/messages?limit=${CHAT_MESSAGE_LIMIT}`,
       undefined,
       token,
     );
-    return result.messages ?? [];
+    return (result.messages ?? []).sort((a, b) => (
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    ));
   }
 
   async sendMessage(
@@ -225,12 +257,39 @@ export class ChatGatewayService {
   // Job follow — poll for agent response via job status
   // -------------------------------------------------------------------------
 
-  async getJobStatus(jobId: string, token?: string): Promise<unknown> {
-    return this.proxy<unknown>(
+  async getJobStatus(jobId: string, token?: string): Promise<ChatJobStatus> {
+    const job = await this.proxy<EveJob>(
       'GET',
       `/jobs/${jobId}`,
       undefined,
       token,
     );
+
+    const status: ChatJobStatus = {
+      id: job.id,
+      phase: job.phase,
+      error: job.close_reason ?? job.error ?? null,
+    };
+
+    if (job.phase === 'done' || job.phase === 'cancelled') {
+      try {
+        const result = await this.proxy<EveJobResult>(
+          'GET',
+          `/jobs/${jobId}/result`,
+          undefined,
+          token,
+        );
+        status.result_text = result.resultText ?? undefined;
+        status.result_json = result.resultJson;
+        status.success = result.success;
+        status.exit_code = result.exitCode ?? null;
+      } catch (err) {
+        this.logger.warn(
+          `Unable to fetch result for job ${jobId}: ${(err as Error).message}`,
+        );
+      }
+    }
+
+    return status;
   }
 }

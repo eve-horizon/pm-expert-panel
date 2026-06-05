@@ -29,6 +29,16 @@ interface ChatDispatch {
   event_id: string;
 }
 
+interface ChatJobStatus {
+  id: string;
+  phase: string;
+  result_text?: string;
+  result_json?: unknown;
+  error?: string | null;
+  success?: boolean;
+  exit_code?: number | null;
+}
+
 export function registerChat(program: Command): void {
   const chat = program.command('chat').description('Manage Eden chat threads');
 
@@ -98,6 +108,20 @@ export function registerChat(program: Command): void {
       if (opts.json) return json(data);
       console.log(`Queued message for thread: ${data.thread_id}`);
       console.log(`Jobs: ${data.job_ids.join(', ')}`);
+    });
+
+  chat
+    .command('job')
+    .description('Show chat job status and result')
+    .argument('<jobId>', 'Eve job ID returned by chat create/send')
+    .option('--json', 'JSON output')
+    .action(async (jobId, opts) => {
+      const data = await api<ChatJobStatus>('GET', `/chat/jobs/${jobId}`);
+      if (opts.json) return json(data);
+      table([data], ['id', 'phase', 'success', 'exit_code', 'error']);
+      if (data.result_text) {
+        console.log('\n' + data.result_text);
+      }
     });
 
   chat
