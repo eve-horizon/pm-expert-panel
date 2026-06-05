@@ -4,10 +4,10 @@ workflows:
     trigger:
       system:
         event: doc.ingest
-    resource_refs:
-      - uri: "ingest://${event.payload.ingest_id}/${event.payload.file_name}"
-        label: "Ingested document"
-        required: true
+    # The doc.ingest system trigger auto-attaches the ingested document as a
+    # resource_ref on the workflow; default propagation hydrates it into every
+    # step's .eve/resources/. (Platform schema >= v0.1.309 made workflow-level
+    # resource_refs a propagation policy, not a place to define resources.)
     with_apis:
       - service: api
         description: Eden Story Map API for reading map state and creating changesets
