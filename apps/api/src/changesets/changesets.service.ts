@@ -18,6 +18,15 @@ import {
 
 import type { PoolClient } from 'pg';
 
+const ENTITY_APPLY_ORDER: Record<string, number> = {
+  persona: 0,
+  activity: 1,
+  step: 2,
+  task: 3,
+  step_task: 4,
+  question: 5,
+};
+
 // ---------------------------------------------------------------------------
 // Row types — mirror the DB schema
 // ---------------------------------------------------------------------------
@@ -295,20 +304,7 @@ export class ChangesetsService {
         [id],
       );
 
-      // Sort by dependency order: persona → activity → step → task/question
-      const entityOrder: Record<string, number> = {
-        persona: 0,
-        activity: 1,
-        step: 2,
-        task: 3,
-        step_task: 4,
-        question: 5,
-      };
-      const items = [...rawItems].sort((a, b) => {
-        const aOrder = entityOrder[a.entity_type] ?? 99;
-        const bOrder = entityOrder[b.entity_type] ?? 99;
-        return aOrder - bOrder;
-      });
+      const items = this.sortItemsForApply(rawItems);
 
       // Two-stage approval: editors create preview items, owners create approved items
       const isOwner = projectRole === 'owner' || projectRole === null; // null = agent bypass
@@ -430,6 +426,9 @@ export class ChangesetsService {
       const taskApproval = isOwner ? 'approved' : 'preview';
       const itemApprovalStatus = isOwner ? 'applied' : 'pending_approval';
 
+      const acceptedItems: ChangesetItemRow[] = [];
+      const rejectedItemIds: string[] = [];
+
       for (const decision of decisions) {
         if (decision.status === 'accepted') {
           const { rows } = await client.query<ChangesetItemRow>(
@@ -441,17 +440,25 @@ export class ChangesetsService {
             throw new NotFoundException(`Changeset item ${decision.id} not found`);
           }
 
-          await this.applyItem(client, ctx, item, projectId, taskApproval);
-          await client.query(
-            `UPDATE changeset_items SET status = 'accepted', approval_status = $2 WHERE id = $1`,
-            [decision.id, itemApprovalStatus],
-          );
+          acceptedItems.push(item);
         } else {
-          await client.query(
-            `UPDATE changeset_items SET status = 'rejected' WHERE id = $1 AND changeset_id = $2`,
-            [decision.id, id],
-          );
+          rejectedItemIds.push(decision.id);
         }
+      }
+
+      for (const item of this.sortItemsForApply(acceptedItems)) {
+        await this.applyItem(client, ctx, item, projectId, taskApproval);
+        await client.query(
+          `UPDATE changeset_items SET status = 'accepted', approval_status = $2 WHERE id = $1`,
+          [item.id, itemApprovalStatus],
+        );
+      }
+
+      for (const itemId of rejectedItemIds) {
+        await client.query(
+          `UPDATE changeset_items SET status = 'rejected' WHERE id = $1 AND changeset_id = $2`,
+          [itemId, id],
+        );
       }
 
       // Determine final changeset status based on all item statuses
@@ -743,6 +750,21 @@ export class ChangesetsService {
         break;
       }
 
+      case 'activity/delete': {
+        const activityId = await this.resolveEntityByDisplayRef(
+          client, 'activities', item.display_reference, projectId,
+        );
+        await this.requireNoLinkedTasksBeforeStructuralDelete(
+          client,
+          'activity',
+          activityId,
+          item.display_reference,
+        );
+        await client.query('DELETE FROM activities WHERE id = $1', [activityId]);
+        await this.auditAppliedItem(client, ctx, projectId, 'activity', activityId, 'delete', item);
+        break;
+      }
+
       // -- Steps -----------------------------------------------------------
 
       case 'step/create': {
@@ -795,6 +817,21 @@ export class ChangesetsService {
           ],
         );
         await this.auditAppliedItem(client, ctx, projectId, 'step', rows[0].id, 'create', item);
+        break;
+      }
+
+      case 'step/delete': {
+        const stepId = await this.resolveEntityByDisplayRef(
+          client, 'steps', item.display_reference, projectId,
+        );
+        await this.requireNoLinkedTasksBeforeStructuralDelete(
+          client,
+          'step',
+          stepId,
+          item.display_reference,
+        );
+        await client.query('DELETE FROM steps WHERE id = $1', [stepId]);
+        await this.auditAppliedItem(client, ctx, projectId, 'step', stepId, 'delete', item);
         break;
       }
 
@@ -968,6 +1005,54 @@ export class ChangesetsService {
       errors,
       warnings,
     });
+  }
+
+  /**
+   * Apply creates parent-first, but deletes child-first. This lets one
+   * changeset safely include task/delete plus step/activity delete items.
+   */
+  private sortItemsForApply(items: ChangesetItemRow[]): ChangesetItemRow[] {
+    return [...items].sort((a, b) => {
+      const aSort = this.itemApplySortKey(a);
+      const bSort = this.itemApplySortKey(b);
+      if (aSort !== bSort) return aSort - bSort;
+
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
+  }
+
+  private itemApplySortKey(item: ChangesetItemRow): number {
+    const entityOrder = ENTITY_APPLY_ORDER[item.entity_type] ?? 99;
+    if (item.operation === 'delete') {
+      return 100 - entityOrder;
+    }
+    return entityOrder;
+  }
+
+  private async requireNoLinkedTasksBeforeStructuralDelete(
+    client: PoolClient,
+    entityType: 'activity' | 'step',
+    entityId: string,
+    displayReference: string | null,
+  ): Promise<void> {
+    const sql = entityType === 'step'
+      ? `SELECT count(*)::int AS count
+           FROM step_tasks
+          WHERE step_id = $1`
+      : `SELECT count(*)::int AS count
+           FROM step_tasks st
+           JOIN steps s ON s.id = st.step_id
+          WHERE s.activity_id = $1`;
+
+    const { rows } = await client.query<{ count: number }>(sql, [entityId]);
+    const linkedTasks = rows[0]?.count ?? 0;
+    if (linkedTasks === 0) {
+      return;
+    }
+
+    throw new BadRequestException(
+      `${entityType}/delete ${displayReference ?? entityId} still has ${linkedTasks} linked task(s); include task/delete items for contained tasks first.`,
+    );
   }
 
   /**

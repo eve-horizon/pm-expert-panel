@@ -41,7 +41,7 @@ describe('create-changeset contract', () => {
         }
 
         if (op === 'update' || op === 'delete') {
-          item.display_reference = 'TSK-1.1.1';
+          item.display_reference = displayRefForEntity(entity);
         }
 
         const result = normalizeCreateChangesetInput(
@@ -71,6 +71,55 @@ describe('create-changeset contract', () => {
       assert.ok(entityEnum.includes(entity), `schema should include entity type "${entity}"`);
     }
   });
+
+  it('allows activity and step deletes without after_state', () => {
+    const result = normalizeCreateChangesetInput(
+      {
+        title: 'Remove obsolete shell',
+        items: [
+          {
+            entity_type: 'step',
+            operation: 'delete',
+            display_reference: 'STP-6.1',
+            description: 'Remove obsolete step',
+          },
+          {
+            entity_type: 'activity',
+            operation: 'delete',
+            display_reference: 'ACT-6',
+            description: 'Remove obsolete activity',
+          },
+        ],
+      },
+      { projectName: 'Test' },
+    );
+
+    assert.deepStrictEqual(result.errors, []);
+    assert.ok(result.sanitized);
+    assert.strictEqual(result.sanitized!.items[0].after_state, undefined);
+    assert.strictEqual(result.sanitized!.items[1].after_state, undefined);
+  });
+
+  it('requires display_reference for activity and step deletes', () => {
+    const result = normalizeCreateChangesetInput(
+      {
+        title: 'Invalid delete',
+        items: [
+          { entity_type: 'step', operation: 'delete' },
+          { entity_type: 'activity', operation: 'delete' },
+        ],
+      },
+      { projectName: 'Test' },
+    );
+
+    assert.deepStrictEqual(
+      result.errors.map((e) => e.message),
+      [
+        'step/delete requires display_reference',
+        'activity/delete requires display_reference',
+      ],
+    );
+  });
 });
 
 function buildMinimalAfterState(entity: string, op: string): Record<string, unknown> {
@@ -91,5 +140,22 @@ function buildMinimalAfterState(entity: string, op: string): Record<string, unkn
       return { title: 'Updated Task' };
     default:
       return {};
+  }
+}
+
+function displayRefForEntity(entity: string): string {
+  switch (entity) {
+    case 'activity':
+      return 'ACT-1';
+    case 'persona':
+      return 'PER-CUST';
+    case 'question':
+      return 'Q-1';
+    case 'step':
+      return 'STP-1.1';
+    case 'task':
+      return 'TSK-1.1.1';
+    default:
+      return 'TSK-1.1.1';
   }
 }

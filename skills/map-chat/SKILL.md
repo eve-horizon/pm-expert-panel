@@ -19,7 +19,7 @@ The Eden CLI is available as `eden` on PATH. It handles auth and URLs automatica
 
 1. **Early exit check:** If the user's request is clearly a no-op (entity already exists, nothing to change), report that immediately and return `success`. Do NOT read the full map first.
 2. **Read context before proposing changes:**
-   - **Single-entity updates** (rename, edit fields, delete one task): use `eden task show <id> --json` or `eden activity list --project $PID --json` for targeted lookups
+   - **Single-entity updates** (rename, edit fields, delete one task/step/activity): use `eden task show <id> --json` or `eden activity list --project $PID --json` for targeted lookups
    - **Structural changes** (add activity, move tasks, bulk edits): use `eden map --project $PID --json` for the full tree
    - **Prefer targeted lookups.** Only read the full map when you genuinely need the complete structure.
 3. Match the user's intent to one or more operations
@@ -84,6 +84,8 @@ You can propose changesets with these entity_type/operation pairs:
 - `task/create` — new task with title, user_story, acceptance_criteria, priority, device
 - `task/update` — modify existing task fields (resolve by display_reference e.g. `TSK-1.2.1`)
 - `task/delete` — remove a task (by display_reference)
+- `step/delete` — remove a step shell (by display_reference); include `task/delete` items for contained tasks
+- `activity/delete` — remove an activity shell and its steps (by display_reference); include `task/delete` items for contained tasks
 - `question/create` — raise a question with category and optional references
 - `question/update` — update question fields
 - `activity/create` — new activity group with name and sort_order
@@ -97,6 +99,7 @@ You can propose changesets with these entity_type/operation pairs:
 | Add structure | "Add a mobile onboarding flow" | Creates activity + steps + tasks |
 | Add requirements | "Users need password reset via email" | Creates task with story + ACs |
 | Modify existing | "Change checkout to support guest users" | Updates task, adds ACs |
+| Remove structure | "Remove ACT-6 and everything within it" | Adds `task/delete` items for child tasks, then `activity/delete` |
 | Ask about map | "What happens after registration?" | Reads map, describes flow (no changeset) |
 | Bulk operations | "Move all admin tasks to a new activity" | Multi-item changeset |
 

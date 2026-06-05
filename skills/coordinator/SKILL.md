@@ -195,7 +195,7 @@ After expert panel completes synthesis, additionally:
    ```bash
    eden map --project $PID --json
    ```
-2. Match the user's intent to changeset operations (task/create, persona/create, activity/create, step/create, task/update, task/delete)
+2. Match the user's intent to changeset operations (task/create, persona/create, activity/create, step/create, task/update, task/delete, step/delete, activity/delete). For activity/step removals, include explicit task/delete items for contained tasks, then the parent delete item.
 3. Emit this exact progress line so the job log records the write path:
    ```text
    Running: eden changeset create --project "$PID" --file /tmp/changeset.json --json

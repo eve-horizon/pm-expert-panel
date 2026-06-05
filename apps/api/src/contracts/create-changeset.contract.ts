@@ -18,10 +18,10 @@
 // ---------------------------------------------------------------------------
 
 export const ENTITY_OPERATIONS = {
-  activity: ['create'],
+  activity: ['create', 'delete'],
   persona: ['create'],
   question: ['create', 'update'],
-  step: ['create'],
+  step: ['create', 'delete'],
   task: ['create', 'update', 'delete'],
 } as const satisfies Record<string, readonly string[]>;
 

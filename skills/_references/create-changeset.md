@@ -21,10 +21,10 @@ or read `contracts/create-changeset.schema.json`.
 
 | Entity Type | Operations |
 |-------------|------------|
-| `activity` | `create` |
+| `activity` | `create`, `delete` |
 | `persona` | `create` |
 | `question` | `create`, `update` |
-| `step` | `create` |
+| `step` | `create`, `delete` |
 | `task` | `create`, `update`, `delete` |
 
 ## Display Reference Formats
@@ -236,3 +236,5 @@ The server accepts legacy field names and rewrites them automatically:
 5. Every `task/create` must include non-empty `acceptance_criteria` (2-4 Given/When/Then entries).
 6. Every `task/create` must include `step_display_id`.
 7. Every `step/create` must include `activity_display_id`.
+8. Every `delete` operation must include `display_reference` and must omit `after_state`.
+9. To remove an activity or step and its requirements, include explicit `task/delete` items for contained tasks, then the `activity/delete` or `step/delete` item.

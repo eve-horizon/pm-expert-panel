@@ -40,7 +40,7 @@ The Eden CLI is available as `eden` on PATH. It handles auth and URLs automatica
 Create a changeset when the answer:
 - Confirms a new requirement should be added (→ task/create)
 - Specifies how an existing task should be modified (→ task/update)
-- Identifies something that should be removed (→ task/delete)
+- Identifies something that should be removed (→ task/delete, step/delete, or activity/delete)
 - Resolves a conflict by choosing one approach (→ task/update on affected tasks)
 - Fills a gap by defining missing structure (→ activity/create, step/create, task/create)
 

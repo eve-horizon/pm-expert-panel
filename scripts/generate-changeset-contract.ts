@@ -180,6 +180,8 @@ function buildAgentReference(): string {
   lines.push('5. Every `task/create` must include non-empty `acceptance_criteria` (2-4 Given/When/Then entries).');
   lines.push('6. Every `task/create` must include `step_display_id`.');
   lines.push('7. Every `step/create` must include `activity_display_id`.');
+  lines.push('8. Every `delete` operation must include `display_reference` and must omit `after_state`.');
+  lines.push('9. To remove an activity or step and its requirements, include explicit `task/delete` items for contained tasks, then the `activity/delete` or `step/delete` item.');
   lines.push('');
 
   return lines.join('\n');
