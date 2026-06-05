@@ -6,7 +6,7 @@ WORKDIR /app
 # Enable corepack for pnpm support (if used), install deps with npm
 COPY package.json package-lock.json* pnpm-lock.yaml* ./
 RUN if [ -f pnpm-lock.yaml ]; then \
-      corepack enable && corepack prepare pnpm@latest --activate && pnpm install --frozen-lockfile; \
+      corepack enable && corepack prepare pnpm@10.28.0 --activate && pnpm install --frozen-lockfile; \
     else \
       npm ci; \
     fi

@@ -4,7 +4,7 @@
 
 # --- Base -------------------------------------------------------------------
 FROM node:22-slim AS base
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
 WORKDIR /app
 
 # --- Dependencies -----------------------------------------------------------
@@ -20,7 +20,7 @@ RUN pnpm run build
 
 # --- Production -------------------------------------------------------------
 FROM node:22-slim AS production
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
 
 ENV NODE_ENV=production
 WORKDIR /app
