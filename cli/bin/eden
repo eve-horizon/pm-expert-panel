@@ -3640,7 +3640,6 @@ function printMap(map) {
 // src/commands/changesets.ts
 var import_promises2 = require("fs/promises");
 var import_path = require("path");
-var import_url = require("url");
 
 // src/commands/initial-map-draft.ts
 var PERSONA_COLORS = [
@@ -4102,7 +4101,6 @@ function isRecord(value) {
 }
 
 // src/commands/changesets.ts
-var import_meta = {};
 function registerChangesets(program3) {
   const cs = program3.command("changeset").alias("changesets").description("Manage changesets");
   cs.command("list").description("List changesets").argument("[project]", "Project ID or slug").option("--project <id>", "Project ID").option("--status <status>", "Filter by status (pending/accepted/rejected)").option("--json", "JSON output").action(async (project, opts) => {
@@ -4196,8 +4194,8 @@ function registerChangesets(program3) {
     console.log(`Rejected ${data.rejected} item(s)`);
   });
   cs.command("schema").description("Show the changeset creation JSON Schema or markdown contract").option("--json", "Output raw JSON Schema (default)").option("--format <format>", "Output format: json or markdown", "json").action(async (opts) => {
-    const __filename = (0, import_url.fileURLToPath)(import_meta.url);
-    const repoRoot = (0, import_path.resolve)((0, import_path.dirname)(__filename), "..", "..", "..");
+    const entrypoint = process.argv[1] ?? process.cwd();
+    const repoRoot = (0, import_path.resolve)((0, import_path.dirname)(entrypoint), "..", "..");
     if (opts.format === "markdown") {
       const mdPath = (0, import_path.resolve)(repoRoot, "skills", "_references", "create-changeset.md");
       const content = await (0, import_promises2.readFile)(mdPath, "utf8");

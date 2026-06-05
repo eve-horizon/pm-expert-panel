@@ -1,6 +1,5 @@
 import { readFile } from 'fs/promises';
 import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
 import { Command } from 'commander';
 import { api } from '../client.js';
 import { json, table } from '../output.js';
@@ -188,8 +187,8 @@ export function registerChangesets(program: Command): void {
     .option('--json', 'Output raw JSON Schema (default)')
     .option('--format <format>', 'Output format: json or markdown', 'json')
     .action(async (opts) => {
-      const __filename = fileURLToPath(import.meta.url);
-      const repoRoot = resolve(dirname(__filename), '..', '..', '..');
+      const entrypoint = process.argv[1] ?? process.cwd();
+      const repoRoot = resolve(dirname(entrypoint), '..', '..');
 
       if (opts.format === 'markdown') {
         const mdPath = resolve(repoRoot, 'skills', '_references', 'create-changeset.md');
