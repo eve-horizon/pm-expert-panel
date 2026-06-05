@@ -11,7 +11,7 @@
     "generate:contracts": "npx tsx ../../scripts/generate-changeset-contract.ts"
   },
   "dependencies": {
-    "@eve-horizon/auth": "^0.1.3",
+    "@eve-horizon/auth": "^0.1.5",
     "@nestjs/common": "^11.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",

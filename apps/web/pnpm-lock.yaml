@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@eve-horizon/auth-react':
-        specifier: ^0.1.2
-        version: 0.1.2(react@18.3.1)
+        specifier: ^0.1.5
+        version: 0.1.5(react@18.3.1)
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -291,8 +291,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@eve-horizon/auth-react@0.1.2':
-    resolution: {integrity: sha512-FYFbHCT76qdFQYKw02D6MIJhTtnrSdxvE9H++/NNo3b6ntcH2Ia00m7RBYkgK3k4dmMMY8lEet+qgtuKdAAZIw==}
+  '@eve-horizon/auth-react@0.1.5':
+    resolution: {integrity: sha512-6iLkry8pV6LnYUkIN7K/YKa3YYRqDY0Gh7UISOdYPvGgXWAFhsOCiXtOocXkkZcA1iDoaZ8fDbqGDk3y0Ve2SA==}
     peerDependencies:
       react: '>=18'
 
@@ -1124,7 +1124,7 @@ snapshots:
   '@esbuild/win32-x64@0.25.12':
     optional: true
 
-  '@eve-horizon/auth-react@0.1.2(react@18.3.1)':
+  '@eve-horizon/auth-react@0.1.5(react@18.3.1)':
     dependencies:
       react: 18.3.1
 
