@@ -10,6 +10,9 @@
     "start:debug": "nest start --debug --watch",
     "generate:contracts": "npx tsx ../../scripts/generate-changeset-contract.ts"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@nestjs/core"]
+  },
   "dependencies": {
     "@eve-horizon/auth": "^0.1.5",
     "@nestjs/common": "^11.0.0",

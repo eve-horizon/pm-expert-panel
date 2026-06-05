@@ -9,6 +9,9 @@
     "preview": "vite preview",
     "lint": "eslint ."
   },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
   "dependencies": {
     "@eve-horizon/auth-react": "^0.1.5",
     "react": "^18.3.1",
