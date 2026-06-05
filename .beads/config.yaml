@@ -67,3 +67,5 @@
 # - github.repo
 
 sync.remote: "git+ssh://git@github.com/eve-horizon/eden.git"
+
+dolt.auto-commit: "on"
